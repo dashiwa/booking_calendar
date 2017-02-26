@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Main finctions for booking calendar.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function booking_calendar_menu() {
+  $items['admin/config/content/booking_calendar'] = array(
+    'page callback' => 'bookin_calendar_admin_settings',
+    'file' => 'bookin_calendar.admin.inc',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['booking_calendar/ajax'] = array(
+    'page callback' => 'booking_calendar_month_ajax',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
