@@ -7,18 +7,34 @@
 
 /**
  * Implements hook_menu().
+ * @link http://api.drupal.org/api/drupal/modules--system--system.api.php/function/hook_menu/7
  */
 function booking_calendar_menu() {
   $items['admin/config/content/booking_calendar'] = array(
-    'page callback' => 'bookin_calendar_admin_settings',
+    'page callback' => 'booking_calendar_admin_settings',
     'file' => 'bookin_calendar.admin.inc',
-    'access arguments' => array('access content'),
+    'access arguments' => array('administer booking calendar'),
     'type' => MENU_CALLBACK,
   );
   $items['booking_calendar/ajax'] = array(
     'page callback' => 'booking_calendar_month_ajax',
-    'access arguments' => array('access content'),
+    'access arguments' => array('administer booking calendar'),
     'type' => MENU_CALLBACK,
   );
   return $items;
 }
+
+
+/**
+ * Implements hook_permission().
+ * @link http://api.drupal.org/api/drupal/modules--system--system.api.php/function/hook_permission/7
+ */
+function booking_calendar_permission() {
+  return array(
+    'administer booking calendar' => array(
+      'title' => t('Administer the Booking Calendar'),
+      'description' => t('Allow users use Booking Calendar'),
+    ),
+  );
+}
+
