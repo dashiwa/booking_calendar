@@ -90,12 +90,55 @@ function theme_booking_calendar_admin($variables) {
   isset($variables['month']) ? $month = $variables['month'] : $month = date('n');
   isset($variables['year']) ? $year = $variables['year'] : $year = date('Y');
 
+  $month_name = date('F', mktime(0, 0, 0, $month, date("j"), date('Y')));
+
+  // Translate months.
+  switch ($month_name) {
+    case 'January' :
+      $month_name = 'Sausis';
+      break;
+    case 'February' :
+      $month_name = 'Vasaris';
+      break;
+    case 'March' :
+      $month_name = 'Kovas';
+      break;
+    case 'April' :
+      $month_name = 'Balandis';
+      break;
+    case 'May' :
+      $month_name = 'Gegužė';
+      break;
+    case 'June' :
+      $month_name = 'Birželis';
+      break;
+    case 'July' :
+      $month_name = 'Liepa';
+      break;
+    case 'August' :
+      $month_name = 'Rugpjūtis';
+      break;
+    case 'September' :
+      $month_name = 'Rugsėjis';
+      break;
+    case 'October' :
+      $month_name = 'Spalis';
+      break;
+    case 'November' :
+      $month_name = 'Lapkritis';
+      break;
+    case 'December' :
+      $month_name = 'Gruodis';
+      break;
+  }
+
+
   // 3. Print the contents of the array $ week
   // A calendar
   // Display the table.
   $output = '<div class="year">' . $year . '</div>
              <div id="controls">
-                <div data-year="' . $year . '" data-month="' . $month . '" class="prev">' . t('PREV') . '</div><div class="month">' . date('F', mktime(0, 0, 0, $month, date("j"), date('Y'))) . '</div><div  data-year="' . $year . '" data-month="' . $month . '" class="next">' . t('NEXT') . '</div></div>';
+                <div data-year="' . $year . '" data-month="' . $month . '" class="prev">' . t('Ankstesnis') . '</div><div class="month">' . $month_name . '</div><div  data-year="' . $year . '" data-month="' . $month . '" class="next">' . t('Kitas') . '</div></div>';
   $output .= '<table id="booking-calendar"><thead>';
 
   $output .= '<thead><tr>';

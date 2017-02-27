@@ -26,6 +26,9 @@
     background: greenyellow;
 }
 
+#controls .prev, #controls .next, #controls .prev, #controls .prev {
+    width: 20%;
+}
 .year {
     text-align: center;
     font-size: 16px;
