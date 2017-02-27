@@ -3,7 +3,7 @@
 /**
  * Implements hook_uninstall().
  */
-function devel_uninstall() {
+function booking_calendar_uninstall() {
   variable_del('booking_calendar_book_table');
   unset($_SESSION['tables']);
 }

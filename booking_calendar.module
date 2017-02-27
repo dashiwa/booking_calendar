@@ -48,9 +48,9 @@ function booking_calendar_admin_settings() {
   $output .= '<div id="t3"></div>';
   $output .= '<div class="flags">
                 <ul>
-                    <li class="this"><span class="av">' . t('Available') . '</span></li>
-                    <li><span class="na">' . t('Fully booked') . '</span></li>
-                    <li><span class="opt">' . t('Remove booked') . '</span></li>
+                    <li class="this"><span class="av">' . t('Pasiekiamas') . '</span></li>
+                    <li><span class="na">' . t('Pilnai nubaustas') . '</span></li>
+                    <li><span class="opt">' . t('Pašalinti nubaustas') . '</span></li>
                 </ul>
             </div>';
 
