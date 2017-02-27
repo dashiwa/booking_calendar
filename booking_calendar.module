@@ -188,9 +188,6 @@ function theme_booking_calendar_admin($variables) {
               }
             }
           }
-          else {
-            drupal_set_message('error', t('Data error,please reselect in booking values'));
-          }
 
         }
         $output .= '<td week_i="' . $i . '" week_j = "' . $j . '" class="' . $classes . '">' . $week[$i][$j] . '</td>';
