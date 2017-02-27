@@ -5,4 +5,5 @@
  */
 function devel_uninstall() {
   variable_del('booking_calendar_book_table');
+  unset($_SESSION['tables']);
 }
