@@ -1,0 +1,93 @@
+#t3 {
+    margin: auto;
+    width: 24px;
+    height: 24px;
+    background: url('../img/ajax-loader.gif') no-repeat;
+    display: none;
+}
+
+#controls {
+    display: table;
+    width: 100%;
+    text-align: center;
+}
+
+#controls div {
+    display: table-cell;
+    cursor: pointer;
+    text-align: center;
+}
+
+#controls div.month {
+    font-weight: bold;
+}
+
+#controls .prev, #controls .next {
+    background: greenyellow;
+}
+
+.year {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#booking-calendar thead tr {
+    background: #99d46c none repeat scroll 0 0;
+}
+
+#booking-calendar {
+    border: 1px solid;
+}
+
+#booking-calendar .this {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+#booking-calendar .weekends {
+    color: red;
+}
+
+#controls .month {
+    background: rgba(0, 0, 0, 0.063);
+}
+
+#booking-calendar tbody tr td {
+    text-align: center;
+    cursor: pointer;
+}
+
+.flags ul li .av, #booking-calendar td.av {
+    background-color: #90ee90;
+}
+
+.flags ul li .na, #booking-calendar td.na {
+    background-color: #ffb6c1;
+}
+
+.flags ul li .opt, #booking-calendar td.opt {
+    background-color: #ffffff
+}
+
+.flags ul li.this {
+    font-size: 18px;
+}
+
+.flags ul li span {
+    width: 100px;
+    height: 30px;
+    display: table-cell;
+    border-radius: 10px;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.flags ul {
+    list-style: none !important;
+}
+
+.flags ul li {
+    padding: 5px;
+}
