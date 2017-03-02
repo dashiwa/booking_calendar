@@ -33,14 +33,16 @@
         // Change booking date
         $(document).on('click', '#booking-calendar td', function (event) {
             var chan = $('.flags ul li.this span').attr('class');
-
+            var this_select = 'select';
             if (typeof chan != 'undefined') {
+
 
                 // Remove old click class.
                 $(this).removeClass();
 
                 // Add new click class
                 $(this).addClass(chan);
+                $(this).addClass(this_select);
 
                 var year = $('#controls .prev').attr('data-year');
                 var month = $('#controls .prev').attr('data-month');
@@ -59,10 +61,12 @@
                     table.week_j = week_j;
                     table.day = day;
                     table.chan = chan;
+                    table.this_select = this_select;
 
                     var flag = '';
 
                     table = JSON.stringify(table);
+                    console.log(table);
 
                     ajaxCalendar($(this), flag, table, day);
                 }

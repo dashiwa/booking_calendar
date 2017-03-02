@@ -61,11 +61,17 @@
 
 }
 
-#booking-calendar tbody tr td, #booking-courts tbody tr td {
+#booking-calendar tbody tr td, #booking-courts tbody tr td, #booking-courts thead td {
     text-align: center;
     cursor: pointer;
     border: 3px solid rgba(58, 152, 216, 0.16);;
 }
+
+#booking-calendar tr td.select {
+    border: 7px solid #6f9dbd;
+}
+
+#booking-courts thead td
 
 .flags ul li .av, #booking-calendar td.av {
     background-color: #90ee90;
@@ -107,7 +113,7 @@
 
 #edit-actions {
     float: left;
-    margin: 14px 0 0 5px;
+    margin: 14px 0 25px 5px;
     width: 37%;
 }
 
@@ -131,12 +137,19 @@
     display: block;
 }
 
+.add-form-name {
+    clear: both;
+}
+
 #edit-add {
     width: 45%;
-    float: left;
 }
 
 #edit-delete {
     width: 45%;
-    float: right;
+}
+
+.fieldset-legend strong {
+    left: 50%;
+    position: relative;
 }
