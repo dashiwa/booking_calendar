@@ -56,9 +56,15 @@
     background: rgba(0, 0, 0, 0.063);
 }
 
-#booking-calendar tbody tr td {
+#booking-calendar, #booking-courts {
+    background-color: rgba(58, 152, 216, 0.09);
+
+}
+
+#booking-calendar tbody tr td, #booking-courts tbody tr td {
     text-align: center;
     cursor: pointer;
+    border: 3px solid rgba(58, 152, 216, 0.16);;
 }
 
 .flags ul li .av, #booking-calendar td.av {
@@ -93,4 +99,44 @@
 
 .flags ul li {
     padding: 5px;
+}
+
+#edit-names, #edit-prices {
+    width: 25%;
+}
+
+#edit-actions {
+    float: left;
+    margin: 14px 0 0 5px;
+    width: 37%;
+}
+
+#edit-prices {
+    float: left;
+}
+
+#edit-names {
+    float: right;
+}
+
+#edit-actions input {
+    display: block;
+}
+
+.delete-form {
+    display: block;
+}
+
+.add-form {
+    display: block;
+}
+
+#edit-add {
+    width: 45%;
+    float: left;
+}
+
+#edit-delete {
+    width: 45%;
+    float: right;
 }
