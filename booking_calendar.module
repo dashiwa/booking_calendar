@@ -61,71 +61,12 @@ function booking_calendar_admin_settings() {
   $output .= '</div>';
 
 
-  $hours = array();
+  $output .= theme('booking_calendar_admin_table_day_hours'/*, array('week' => _booking_calendar_calculate())*/);
 
-  $hour_begin = 8;
-
-  $minutes = 0;
-
-  $interval = 30;
-
-  for ($i = 0; $i < 30; $i++) {
-    $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
-    $minutes += $interval;
-
-  }
-
-
-  $courts = _default_hours_and_name_courts();
-
-  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
-    $courts = variable_get('booking_calendar_names_courts', '');
-  }
-
-  array_unshift($courts, array('name' => t('TIME')));
-
-  $court_form = drupal_get_form('booking_calendar_courts_form');
-  $courts_form_html = render($court_form);
-
-  $output .= $courts_form_html;
-
-  $output .= '<table id="booking-courts"><thead><tr>';
-  foreach ($courts as $court) {
-    if (!empty($court['name'])) {
-      $output .= '<td>' . $court['name'] . '</td>';
-    }
-    else {
-      $output .= '<td></td>';
-    }
-  }
-  $output .= '</tr></thead>';
-  foreach ($hours as $hour) {
-    $output .= '<tr>';
-
-    $a = 0;
-    foreach ($courts as $court) {
-      if ($a == 0) {
-        $output .= '<td>' . $hour . '</td>';
-      }
-      else {
-        if ($court['name']) {
-          $hour_key = str_replace(' : ', '_', $hour);
-          if (!empty(variable_get('booking_calendar_names_courts', ''))) {
-            $output .= '<td>' . $court['hours'][$hour_key]['price'] . '€' . '</td>';
-          }
-          else {
-            $output .= '<td>' . $court['hours'][$hour]['price'] . '</td>';
-          }
-        }
-      }
-      $a++;
-    }
-    '</tr>';
-  }
-  $output .= '</table>';
 
   return $output;
 }
+
 
 
 function booking_calendar_courts_form($form, &$form_state) {
@@ -317,6 +258,7 @@ function _default_hours_and_name_courts() {
   $minutes = 0;
   $interval = 30;
 
+
   for ($i = 0; $i < 30; $i++) {
     $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
     $minutes += $interval;
@@ -391,6 +333,69 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
 
 function theme_booking_calendar_admin_table_day_hours($variables) {
 
+  $output = '';
+
+  $hours = array();
+  $hour_begin = 8;
+  $minutes = 0;
+  $interval = 30;
+
+  for ($i = 0; $i < 30; $i++) {
+    $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
+    $minutes += $interval;
+
+  }
+
+
+  $courts = _default_hours_and_name_courts();
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+  }
+
+  array_unshift($courts, array('name' => t('TIME')));
+
+  $court_form = drupal_get_form('booking_calendar_courts_form');
+  $courts_form_html = render($court_form);
+
+  $output .= $courts_form_html;
+
+  $output .= '<table id="booking-courts"><thead><tr>';
+  foreach ($courts as $court) {
+    if (!empty($court['name'])) {
+      $output .= '<td>' . $court['name'] . '</td>';
+    }
+    else {
+      $output .= '<td></td>';
+    }
+  }
+  $output .= '</tr></thead>';
+  foreach ($hours as $hour) {
+    $output .= '<tr>';
+
+    $a = 0;
+    foreach ($courts as $court) {
+      if ($a == 0) {
+        $output .= '<td>' . $hour . '</td>';
+      }
+      else {
+        if ($court['name']) {
+          $hour_key = str_replace(' : ', '_', $hour);
+          if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+            $output .= '<td>' . $court['hours'][$hour_key]['price'] . '€' . '</td>';
+          }
+          else {
+            $output .= '<td>' . $court['hours'][$hour]['price'] . '</td>';
+          }
+        }
+      }
+      $a++;
+    }
+    '</tr>';
+  }
+  $output .= '</table>';
+
+  return $output;
 }
 
 /**
