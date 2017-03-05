@@ -76,7 +76,13 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
         if ($court['name']) {
           $hour_key = str_replace(' : ', '_', $hour);
           if (!empty(variable_get('booking_calendar_names_courts', ''))) {
-            $output .= '<td>' . $court['hours'][$hour_key]['price'] . '€' . '</td>';
+            if (isset($court['hours'][$hour]['price'])) {
+              $output .= '<td>' . $court['hours'][$hour]['price'] . '€' . '</td>';
+            }
+            else {
+              $output .= '<td>' . 0 . '€' . '</td>';
+            }
+
           }
           else {
             $output .= '<td>' . $court['hours'][$hour]['price'] . '</td>';

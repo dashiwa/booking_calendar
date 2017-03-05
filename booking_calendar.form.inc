@@ -55,21 +55,33 @@ function booking_calendar_courts_form($form, &$form_state) {
   );
 
   $hours_settings = variable_get('booking_hours_settings', '');
+  if (!empty($hours_settings)) {
+    $hour_begin = $hours_settings['hour_begin'];
+    $hour_end = $hours_settings['hour_end'];
+  }
+  else {
+    $hour_begin = 8;
+    $hour_end = 22;
+  }
 
   $form['courts']['hour_begin'] = array(
     '#type' => 'textfield',
     '#title' => t('Hours begin'),
-    '#default_value' => $hours_settings['hour_begin'],
+    '#default_value' => $hour_begin,
     '#size' => 60,
     '#maxlength' => 128,
   );
   $form['courts']['hour_end'] = array(
     '#type' => 'textfield',
     '#title' => t('Hours begin'),
-    '#default_value' => $hours_settings['hour_end'],
+    '#default_value' => $hour_end,
     '#size' => 60,
     '#maxlength' => 128,
   );
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $flag = TRUE;
+  }
 
   foreach ($courts as $court) {
     $form['courts']['names']['name']['name-' . $court['name']] = array(
@@ -95,26 +107,33 @@ function booking_calendar_courts_form($form, &$form_state) {
     $hours_settings = variable_get('booking_hours_settings', '');
     if (empty($hours_settings)) {
       $hour_begin = 8;
-      $hour_begin = 22;
+      $hour_end = 22;
     }
     else {
       $hour_begin = $hours_settings['hour_begin'];
       $hour_end = $hours_settings['hour_end'];
     }
 
-    //count = (($hour_end - $hound_begin)*interval for hours)+2;
-    $count_booking_hours = (($hour_end - $hour_begin) * 2) + 2;
 
-    for ($i = 0; $i < $count_booking_hours; $i++) {
+    // Count = (($hour_end - $hound_begin)*interval for hours)+2.
+    $count = (($hour_end - $hour_begin) * 2) + 2;
+
+    for ($i = 0; $i < $count; $i++) {
       $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
       $minutes += $interval;
     }
-    //dsm($court);
+
+
     foreach ($hours as $hour) {
       $hour_key = str_replace(' : ', '_', $hour);
 
+      if (isset($court['hours'][$hour]['price'])) {
+        $default_value = $court['hours'][$hour]['price'];
+      }
+      else {
+        $default_value = array();
+      }
 
-      !empty(variable_get('booking_calendar_names_courts', '')) ? $default_value = $court['hours'][$hour_key]['price'] : $default_value = $court['hours'][$hour]['price'];
 
       $form['courts']['prices']['price']['price-' . $court['name']][$court['name'] . '_' . $hour_key] = array(
         '#type' => 'textfield',
@@ -123,6 +142,7 @@ function booking_calendar_courts_form($form, &$form_state) {
         '#size' => 60,
         '#maxlength' => 128,
       );
+
     }
 
 
@@ -158,60 +178,93 @@ function booking_calendar_courts_form($form, &$form_state) {
 function booking_calendar_courts_form_submit($form, &$form_state) {
 
 
-  if (empty(variable_get('booking_calendar_names_courts', ''))) {
+  /*if (empty(variable_get('booking_calendar_names_courts', ''))) {
     $courts_default = _default_hours_and_name_courts();
   }
   else {
     $courts_default = variable_get('booking_calendar_names_courts', '');
-  }
+  }*/
 
   $hours = array();
   $minutes = 0;
   $interval = 30;
 
-  $hours_settings = variable_get('booking_hours_settings', '');
-  if (empty($hours_settings)) {
+
+  if (!isset($form_state['values']['hour_begin']) || !isset($form_state['values']['hour_end'])) {
     $hour_begin = 8;
-    $hour_begin = 22;
+    $hour_end = 22;
   }
   else {
-    $hour_begin = $hours_settings['hour_begin'];
-    $hour_end = $hours_settings['hour_end'];
+    $hour_begin = $form_state['values']['hour_begin'];
+    $hour_end = $form_state['values']['hour_end'];
   }
 
   //count = (($hour_end - $hound_begin)*interval for hours)+2;
-  $count_booking_hours = (($hour_end - $hour_begin) * 2) + 2;
+  $count = (($hour_end - $hour_begin) * 2) + 2;
 
-  for ($i = 0; $i < $count_booking_hours; $i++) {
+  $hours_settings = array(
+    'hour_begin' => $hour_begin,
+    'hour_end' => $hour_end,
+    'hour_count' => $count,
+  );
+
+  for ($i = 0; $i < $count; $i++) {
     $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
     $minutes += $interval;
   }
 
 
+  $courts = array(
+    1 => array(
+      'name' => 'U1',
+      'price' => 0,
+    ),
+    2 => array(
+      'name' => 'U2',
+      'price' => 0,
+    ),
+    3 => array(
+      'name' => 'U3',
+      'price' => 0,
+    ),
+    4 => array(
+      'name' => 'U4',
+      'price' => 0,
+    ),
+  );
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+  }
+
+
   $courts_final = array();
-
-  foreach ($courts_default as $court_default) {
-    //dsm($court_default['hours']);
-    foreach ($court_default['hours'] as $hour) {
-
-
-      $hour_key = str_replace(' : ', '_', $hour['hour']);
+  foreach ($courts as $court) {
+    foreach ($hours as $hour) {
+      $hour_key = str_replace(' : ', '_', $hour);
 
       $hours_prices_new_court[$hour_key] = array(
-        'hour' => $hour['hour'],
+        'hour' => $hour,
         'price' => 0,
       );
+      if (isset($form_state['values'][$court['name'] . '_' . $hour_key])) {
+        $hours_prices[$hour] = array(
+          'hour' => $hour,
+          'price' => $form_state['values'][$court['name'] . '_' . $hour_key],
+        );
+      }
+      else {
+        $hours_prices = array();
+      }
 
-      $hours_prices[$hour_key] = array(
-        'hour' => $hour['hour'],
-        'price' => $form_state['values'][$court_default['name'] . '_' . $hour_key],
-      );
-      $courts_final[$court_default['name']] = array(
-        'name' => $form_state['values']['name-' . $court_default['name']],
+
+      $courts_final[$court['name']] = array(
+        'name' => $form_state['values']['name-' . $court['name']],
         'hours' => $hours_prices,
       );
     }
   }
+
 
 
   if ($form_state['triggering_element']['#value'] == 'Add court') {
@@ -232,23 +285,7 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   }
 
 
-  if (!isset($form_state['values']['hour_begin']) || !isset($form_state['values']['hour_end'])) {
-    $hour_begin = 8;
-    $hour_end = 22;
-  }
-  else {
-    $hour_begin = $form_state['values']['hour_begin'];
-    $hour_end = $form_state['values']['hour_end'];
-  }
 
-  //count = (($hour_end - $hound_begin)*interval for hours)+2;
-  $count_booking_hours = (($hour_end - $hour_begin) * 2) + 2;
-
-  $hours_settings = array(
-    'hour_begin' => $hour_begin,
-    'hour_end' => $hour_end,
-    'hour_count' => $count_booking_hours,
-  );
 
   variable_set('booking_hours_settings', $hours_settings);
   variable_set('booking_calendar_names_courts', $courts_final);
