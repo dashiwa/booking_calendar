@@ -6,5 +6,6 @@
 function booking_calendar_uninstall() {
   variable_del('booking_calendar_book_table');
   variable_del('booking_calendar_names_courts');
+  variable_del('booking_hours_settings');
   unset($_SESSION['tables']);
 }
