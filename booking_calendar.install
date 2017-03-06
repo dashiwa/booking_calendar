@@ -8,4 +8,6 @@ function booking_calendar_uninstall() {
   variable_del('booking_calendar_names_courts');
   variable_del('booking_hours_settings');
   unset($_SESSION['tables']);
+  unset($_SESSION['current_select']);
+  unset($_SESSION['table_hours']);
 }

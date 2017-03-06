@@ -6,16 +6,28 @@
 
 function booking_calendar_courts_form($form, &$form_state) {
 
-  $courts = _default_hours_and_name_courts();
 
-  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
-    $courts = variable_get('booking_calendar_names_courts', '');
+  // Get data for current click state.
+  if (!empty($_SESSION['current_select'])) {
+    $current_state = $_SESSION['current_select'];
+    $year = $current_state['year'];
+    $month = $current_state['month'];
+    $day = $current_state['day'];
+    if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
+      $courts = $_SESSION['table_hours'][$year][$month][$day];
+    }
+    else {
+      $courts = _default_hours_and_name_courts();
+    }
+  }
+  else {
+    $courts = _default_hours_and_name_courts();
   }
 
 
   $form['courts'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Courts settings for ') . '<strong>' . date('Y F j') . '</strong>',
+    '#title' => t('Courts settings for ') . '<strong>' . $year . '/' . $month . '/' . $day . '</strong>',
     '#weight' => 5,
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
@@ -169,7 +181,8 @@ function booking_calendar_courts_form($form, &$form_state) {
 
   $form['submit_button'] = array(
     '#type' => 'submit',
-    '#value' => t('Click Here!'),
+    '#value' => t('Save cofiguration'),
+    '#weight' => 10,
   );
 
   return $form;
@@ -266,7 +279,6 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   }
 
 
-
   if ($form_state['triggering_element']['#value'] == 'Add court') {
     $new_court[$form_state['values']['add_name_court']] = array(
       'name' => $form_state['values']['add_name_court'],
@@ -285,10 +297,17 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   }
 
 
-
-
   variable_set('booking_hours_settings', $hours_settings);
   variable_set('booking_calendar_names_courts', $courts_final);
+
+  // Save for curren click state.
+  if (!empty($_SESSION['current_select'])) {
+    $current_state = $_SESSION['current_select'];
+    $year = $current_state['year'];
+    $month = $current_state['month'];
+    $day = $current_state['day'];
+    $_SESSION['table_hours'][$year][$month][$day] = $courts_final;
+  }
 
 
 }

@@ -38,7 +38,9 @@
 
 
                 // Remove old click class.
-                $(this).removeClass();
+                $(this).removeClass(this_select);
+
+
 
                 // Add new click class
                 $(this).addClass(chan);
@@ -61,14 +63,21 @@
                     table.week_j = week_j;
                     table.day = day;
                     table.chan = chan;
-                    table.this_select = this_select;
+
+
+                    var currentSelect = {};
+                    currentSelect.year = year;
+                    currentSelect.month = month;
+                    currentSelect.week_i = week_i;
+                    currentSelect.week_j = week_j;
+                    currentSelect.day = day;
 
                     var flag = '';
 
                     table = JSON.stringify(table);
-                    console.log(table);
+                    currentSelect = JSON.stringify(currentSelect);
 
-                    ajaxCalendar($(this), flag, table, day);
+                    ajaxCalendar($(this), flag, table, day, currentSelect);
                 }
 
             }
@@ -78,7 +87,7 @@
 })(jQuery);
 
 
-function ajaxCalendar(jqueryThis, flag, table, day) {
+function ajaxCalendar(jqueryThis, flag, table, day, currentSelect) {
 
     var $ = jQuery;
 
@@ -120,15 +129,26 @@ function ajaxCalendar(jqueryThis, flag, table, day) {
         }
     }
 
-    var ajaxPath = '/booking/calendar/ajax'; // This is the AjAX URL set by the custom Module.
+    var postString = 'day=' + day + '&month_number=' + month_number + '&year=' + year + '&table=' + table + '&current_select=' + currentSelect;
 
+    if (typeof currentSelect == 'undefined') {
+        postString = 'day=' + day + '&month_number=' + month_number + '&year=' + year + '&table=' + table;
+    }
+
+    var ajaxPath = '/booking/calendar/ajax'; // This is the AjAX URL set by the custom Module.
     $.ajax({
         url: ajaxPath,
         method: "POST",
-        data: 'day=' + day + '&month_number=' + month_number + '&year=' + year + '&table=' + table,
+        data: postString,
         success: function (data) {
-            if (data['output'].length > 0)
+            console.log(data['hours_table']);
+            if (data['output'].length > 0) {
                 $('#calendar-wrapper').html(data['output']);
+            }
+            $('#hours-table-wrapper').html(data['hours_table'])
+
+
+
         }
     });
 }
