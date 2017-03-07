@@ -77,6 +77,15 @@
     background-color: #90ee90;
 }
 
+.flags span {
+    padding: 10px;
+    border: 1px solid #6f9dbd;
+}
+
+.flags span.av {
+    background-color: #90ee90;
+}
+
 .flags ul li .na, #booking-calendar td.na {
     background-color: #ffb6c1;
 }

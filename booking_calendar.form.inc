@@ -7,21 +7,30 @@
 function booking_calendar_courts_form($form, &$form_state) {
 
 
-  // Get data for current click state.
-  if (!empty($_SESSION['current_select'])) {
-    $current_state = $_SESSION['current_select'];
-    $year = $current_state['year'];
-    $month = $current_state['month'];
-    $day = $current_state['day'];
-    if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
-      $courts = $_SESSION['table_hours'][$year][$month][$day];
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+
+    // Get data for current click state.
+    if (!empty($_SESSION['current_select'])) {
+      $current_state = $_SESSION['current_select'];
+      $year = $current_state['year'];
+      $month = $current_state['month'];
+      $day = $current_state['day'];
+      if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
+        $courts = $_SESSION['table_hours'][$year][$month][$day];
+      }
     }
     else {
-      $courts = _default_hours_and_name_courts();
+      $year = date('Y');
+      $month = date('n');
+      $day = date('j');
     }
   }
   else {
     $courts = _default_hours_and_name_courts();
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
   }
 
 
@@ -78,14 +87,14 @@ function booking_calendar_courts_form($form, &$form_state) {
 
   $form['courts']['hour_begin'] = array(
     '#type' => 'textfield',
-    '#title' => t('Hours begin'),
+    '#title' => t('Hour begin'),
     '#default_value' => $hour_begin,
     '#size' => 60,
     '#maxlength' => 128,
   );
   $form['courts']['hour_end'] = array(
     '#type' => 'textfield',
-    '#title' => t('Hours begin'),
+    '#title' => t('Hour end'),
     '#default_value' => $hour_end,
     '#size' => 60,
     '#maxlength' => 128,
@@ -191,13 +200,6 @@ function booking_calendar_courts_form($form, &$form_state) {
 function booking_calendar_courts_form_submit($form, &$form_state) {
 
 
-  /*if (empty(variable_get('booking_calendar_names_courts', ''))) {
-    $courts_default = _default_hours_and_name_courts();
-  }
-  else {
-    $courts_default = variable_get('booking_calendar_names_courts', '');
-  }*/
-
   $hours = array();
   $minutes = 0;
   $interval = 30;
@@ -249,7 +251,7 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   if (!empty(variable_get('booking_calendar_names_courts', ''))) {
     $courts = variable_get('booking_calendar_names_courts', '');
   }
-
+  //dsm($courts);
 
   $courts_final = array();
   foreach ($courts as $court) {
@@ -278,7 +280,8 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
     }
   }
 
-
+  //dsm($form_state);
+  // dsm($courts_final);
   if ($form_state['triggering_element']['#value'] == 'Add court') {
     $new_court[$form_state['values']['add_name_court']] = array(
       'name' => $form_state['values']['add_name_court'],

@@ -57,7 +57,6 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
   );
 }
 
-
 /**
  * Defines form callback for the admin/config/availability-calendar/settings
  * page.
@@ -67,9 +66,7 @@ function booking_calendar_admin_settings() {
   drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/calendar.js');
   drupal_add_css(drupal_get_path('module', 'booking_calendar') . '/css/calendar.css');
 
-
   module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
-
   module_load_include('inc', 'booking_calendar', 'booking_calendar');
 
 
@@ -90,7 +87,6 @@ function booking_calendar_admin_settings() {
   $output .= '<div id="hours-table-wrapper">';
 
   if (!empty($_SESSION['current_select'])) {
-
     $current_state = $_SESSION['current_select'];
     $year = $current_state['year'];
     $month = $current_state['month'];
@@ -101,6 +97,9 @@ function booking_calendar_admin_settings() {
       'month' => $month,
       'day' => $day,
     ));
+  }
+  else {
+    $output .= theme('booking_calendar_admin_table_day_hours');
   }
 
   $output .= '</div>';
@@ -271,18 +270,16 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
     $minutes += $interval;
   }
 
-  $courts = _default_hours_and_name_courts();
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
 
-
-  if (!empty($_SESSION['table_hours'])) {
-    $year = $variables['year'];
-    $month = $variables['month'];
-    $day = $variables['day'];
-    if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
-      $courts = $_SESSION['table_hours'][$year][$month][$day];
-    }
-    else {
-      $courts = _default_hours_and_name_courts();
+    if (!empty($_SESSION['table_hours'])) {
+      $year = $variables['year'];
+      $month = $variables['month'];
+      $day = $variables['day'];
+      if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
+        $courts = $_SESSION['table_hours'][$year][$month][$day];
+      }
     }
   }
   else {
