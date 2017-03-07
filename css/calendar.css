@@ -28,6 +28,12 @@
 
 #controls .prev, #controls .next, #controls .prev, #controls .prev {
     width: 20%;
+    position: inherit;
+    font-size: inherit;
+}
+
+#controls .prev::before, #controls .next::before {
+    display: none;
 }
 .year {
     text-align: center;

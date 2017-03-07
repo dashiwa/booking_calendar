@@ -2,7 +2,8 @@ name = Booking calendar
 core =  7.x
 description = Booking calendar
 package = Media
-
+version = VERSION
 configure = admin/config/content/booking_calendar
-#files[] = views/availability_calendar_views_controller.inc
+
 files[] = booking_calendar.inc
+

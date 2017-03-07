@@ -1,0 +1,79 @@
+#block-booking-calendar-booking-calendar-widget {
+    padding: 10px;
+}
+
+#block-booking-calendar-booking-calendar-widget td {
+    font-size: 8px;
+    background: white;
+    border-color: #ebebeb;
+}
+
+#block-booking-calendar-booking-calendar-widget .year {
+    text-align: center;
+}
+
+#block-booking-calendar-booking-calendar-widget #controls {
+    text-align: center;
+}
+
+#block-booking-calendar-booking-calendar-widget .prev, .next {
+    cursor: pointer;
+    height: 17px;
+    overflow: hidden;
+    position: absolute;
+    width: 10px;
+    top: 30px;
+    font-size: 0;
+}
+
+#block-booking-calendar-booking-calendar-widget .next {
+    right: 10px;
+}
+
+#block-booking-calendar-booking-calendar-widget .prev:before, .next:before {
+    background-color: #3b3b3b;
+    content: "";
+    height: 17px;
+    left: 5px;
+    position: absolute;
+    top: 0;
+    transform: rotate(45deg);
+    width: 17px;
+}
+
+#block-booking-calendar-booking-calendar-widget .next:before {
+    left: auto;
+    right: 5px;
+}
+
+#block-booking-calendar-booking-calendar-widget .prev:after, .next:after {
+    background-color: #ebebeb;;
+    content: "";
+    height: 17px;
+    left: 8px;
+    position: absolute;
+    top: 0;
+    transform: rotate(45deg);
+    width: 17px;
+}
+
+#block-booking-calendar-booking-calendar-widget .next:after {
+    left: auto;
+    right: 8px;
+}
+
+#block-booking-calendar-booking-calendar-widget .this {
+    background-color: #fbb44c;
+    color: white;
+}
+
+#block-booking-calendar-booking-calendar-table-widget thead td.first {
+    font-size: 0;
+}
+
+#block-booking-calendar-booking-calendar-table-widget td {
+    text-align: center;
+    border-color: rgba(58, 152, 216, 0.16);
+    background-color: rgba(58, 152, 216, 0.09);
+
+}

@@ -5,6 +5,20 @@
  * Main finctions for booking calendar.
  */
 
+
+/**
+ * Implements hook_init().
+ */
+function booking_calendar_init() {
+  drupal_add_css(drupal_get_path('module', 'booking_calendar') . '/css/global.css', array(
+    'group' => CSS_DEFAULT,
+    'type' => 'file'
+  ));
+
+  module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
+  module_load_include('inc', 'booking_calendar', 'booking_calendar');
+}
+
 /**
  * Implements hook_menu().
  */
@@ -45,6 +59,7 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
         'week' => NULL,
         'month' => NULL,
         'year' => NULL,
+        'widget' => FALSE,
       ),
     ),
     'booking_calendar_admin_table_day_hours' => array(
@@ -52,10 +67,77 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
         'year' => NULL,
         'month' => NULL,
         'day' => NULL,
+        'widget' => FALSE,
       ),
     ),
   );
 }
+
+
+/**
+ * Implements hook_block_info().
+ */
+function booking_calendar_block_info() {
+  $blocks = array();
+
+  $blocks['booking_calendar_widget'] = array(
+    'info' => t('Booking calendar widget'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  $blocks['booking_calendar_table_widget'] = array(
+    'info' => t('Booking calendar table widget'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function booking_calendar_block_view($delta = '') {
+  // The $delta parameter tells us which block is being requested.
+  switch ($delta) {
+    case 'booking_calendar_widget':
+      $block['subject'] = t('');
+      $block['content'] = booking_calendar_block_contents($delta);
+      break;
+    case 'booking_calendar_table_widget':
+      $block['subject'] = t('');
+      $block['content'] = booking_calendar_block_contents($delta);
+      break;
+  }
+  return $block;
+}
+
+
+/**
+ * A module-defined block content function.
+ */
+function booking_calendar_block_contents($which_block) {
+
+  switch ($which_block) {
+    case 'booking_calendar_widget':
+      $result = array(
+        '#markup' => theme('booking_calendar_admin', array(
+          'week' => _booking_calendar_calculate(),
+          'widget' => TRUE
+        )),
+      );
+      break;
+
+    case 'booking_calendar_table_widget':
+      $result = array(
+        '#markup' => theme('booking_calendar_admin_table_day_hours', array(
+          'widget' => TRUE
+        )),
+      );
+      break;
+
+  }
+  return $result;
+}
+
 
 /**
  * Defines form callback for the admin/config/availability-calendar/settings
@@ -291,21 +373,33 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
   array_unshift($courts, array('name' => t('TIME')));
 
 
-  // Add admin setting form for table hours.
-  $court_form = drupal_get_form('booking_calendar_courts_form');
-  $courts_form_html = render($court_form);
+  $widget = $variables['widget'];
 
-  $output .= $courts_form_html;
+  if (!$widget) {
+    // Add admin setting form for table hours.
+    $court_form = drupal_get_form('booking_calendar_courts_form');
+    $courts_form_html = render($court_form);
 
+    $output .= $courts_form_html;
+  }
 
+  $classes = ' ';
   $output .= '<div id="booking-courts-wrapper"><table id="booking-courts"><thead><tr>';
+  $k = 1;
   foreach ($courts as $court) {
+    if ($k == 1) {
+      $classes .= 'first';
+    }
+    else {
+      $classes = '';
+    }
     if (!empty($court['name'])) {
-      $output .= '<td>' . $court['name'] . '</td>';
+      $output .= '<td class="' . $classes . '">' . $court['name'] . '</td>';
     }
     else {
       $output .= '<td></td>';
     }
+    $k++;
   }
   $output .= '</tr></thead>';
   foreach ($hours as $hour) {
@@ -348,7 +442,7 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
  */
 function theme_booking_calendar_admin($variables) {
 
-  isset($variables['week']) ? $week = $variables['week'] : $week = _calendar_calculate();;
+  isset($variables['week']) ? $week = $variables['week'] : $week = _booking_calendar_calculate();;
   isset($variables['month']) ? $month = $variables['month'] : $month = date('n');
   isset($variables['year']) ? $year = $variables['year'] : $year = date('Y');
 
@@ -394,6 +488,7 @@ function theme_booking_calendar_admin($variables) {
       break;
   }
 
+  $widget = $variables['widget'];
 
   // 3. Print the contents of the array $ week
   // A calendar
@@ -404,9 +499,15 @@ function theme_booking_calendar_admin($variables) {
   $output .= '<table id="booking-calendar"><thead>';
 
   $output .= '<thead><tr>';
+  $a = 1;
   for ($i = 6; $i < 13; $i++) {
-
-    $output .= '<td>' . date('l', mktime(0, 0, 0, date('m'), $i, $year)) . '</td>';
+    if ($widget) {
+      $output .= '<td>' . _arabic_to_roman($a) . '</td>';
+    }
+    else {
+      $output .= '<td>' . date('l', mktime(0, 0, 0, date('m'), $i, $year)) . '</td>';
+    }
+    $a++;
   }
 
   $output .= '</tr></thead>';
@@ -473,3 +574,5 @@ function theme_booking_calendar_admin($variables) {
 
   return $output;
 }
+
+
