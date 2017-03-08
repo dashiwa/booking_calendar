@@ -5,7 +5,6 @@
  * Main finctions for booking calendar.
  */
 
-
 /**
  * Implements hook_init().
  */
@@ -14,9 +13,9 @@ function booking_calendar_init() {
     'group' => CSS_DEFAULT,
     'type' => 'file'
   ));
-
-  module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
-  module_load_include('inc', 'booking_calendar', 'booking_calendar');
+  drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/widget.js');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar');
 }
 
 /**
@@ -148,9 +147,11 @@ function booking_calendar_admin_settings() {
   drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/calendar.js');
   drupal_add_css(drupal_get_path('module', 'booking_calendar') . '/css/calendar.css');
 
-  module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
-  module_load_include('inc', 'booking_calendar', 'booking_calendar');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar');
 
+  //dsm(variable_get('booking_calendar_names_courts', ''));
+  //dsm($_SESSION);
 
   $output = '';
   $output .= '<div id="t3"></div>';
@@ -166,9 +167,13 @@ function booking_calendar_admin_settings() {
   $output .= theme('booking_calendar_admin', array('week' => _booking_calendar_calculate()));
   $output .= '</div>';
 
+  /*********** Begin Hours table ********/
+
   $output .= '<div id="hours-table-wrapper">';
 
   if (!empty($_SESSION['current_select'])) {
+
+    // Select curren state table!
     $current_state = $_SESSION['current_select'];
     $year = $current_state['year'];
     $month = $current_state['month'];
@@ -186,6 +191,9 @@ function booking_calendar_admin_settings() {
 
   $output .= '</div>';
 
+
+  /*********** END HOURS TABLE **********/
+
   return $output;
 }
 
@@ -199,7 +207,7 @@ function booking_calendar_admin_settings() {
  * Ajax callback.
  */
 function booking_calendar_month_ajax() {
-  module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
   if (count($_POST)) {
     // We calculate the number of days in the current month.
     $dayofmonth = date('t');
@@ -216,6 +224,7 @@ function booking_calendar_month_ajax() {
 
     isset($_POST['current_select']) ? $current_select = json_decode($_POST['current_select']) : $current_select = array();
 
+    isset($_POST['widget']) ? $widget = TRUE : $widget = FALSE;
 
     $table = (array) $table;
 
@@ -294,6 +303,20 @@ function booking_calendar_month_ajax() {
         'day' => $day,
       ));
 
+      // If widget block
+      if ($widget) {
+        $year = $_POST['year'];
+        $month = $_POST['month_number'];
+        $day = $_POST['day'];
+
+        $hours_table = theme('booking_calendar_admin_table_day_hours', array(
+          'year' => $year,
+          'month' => $month,
+          'day' => $day,
+          'widget' => $widget,
+        ));
+      }
+
     }
     else {
       $hours_table = theme('booking_calendar_admin_table_day_hours');
@@ -324,33 +347,55 @@ function booking_calendar_month_ajax() {
  * @return string
  */
 function theme_booking_calendar_admin_table_day_hours($variables) {
-  module_load_include('inc', 'booking_calendar', 'booking_calendar');
+  //module_load_include('inc', 'booking_calendar', 'booking_calendar');
   $output = '';
 
   $hours = array();
   $minutes = 0;
   $interval = 30;
 
+  if ($_SESSION['current_select']) {
+    $year = $_SESSION['current_select']['year'];
+    $month = $_SESSION['current_select']['month'];
+    $day = $_SESSION['current_select']['day'];
+  }
+  else {
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
+  }
 
-  $hours_settings = variable_get('booking_hours_settings', '');
+
+  if (empty($_SESSION['hours_settings'])) {
+    $hours_settings = variable_get('booking_hours_settings', '');
+  }
+  else {
+    $hours_settings = $_SESSION['hours_settings'];
+  }
+
+
   if (empty($hours_settings)) {
     $hour_end = 22;
     $hour_begin = 8;
   }
   else {
-    $hour_end = $hours_settings['hour_end'];
-    $hour_begin = $hours_settings['hour_begin'];
+    $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+    $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
   }
 
 
   //count = (($hour_end - $hound_begin)*interval for hours)+2;
   $count = (($hour_end - $hour_begin) * 2) + 2;
 
-
+  dsm($hours_settings);
   for ($i = 0; $i < $count; $i++) {
     $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
     $minutes += $interval;
   }
+
+  // For client table block variable.
+  $widget = $variables['widget'];
+
 
   if (!empty(variable_get('booking_calendar_names_courts', ''))) {
     $courts = variable_get('booking_calendar_names_courts', '');
@@ -359,8 +404,14 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
       $year = $variables['year'];
       $month = $variables['month'];
       $day = $variables['day'];
+      if ($widget) {
+        $year = date('Y');
+        $month = date('n');
+        $day = date('j');
+      }
       if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
         $courts = $_SESSION['table_hours'][$year][$month][$day];
+
       }
     }
   }
@@ -371,15 +422,13 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
 
   //Add fist column - time.
   array_unshift($courts, array('name' => t('TIME')));
+  // dsm($courts);
 
-
-  $widget = $variables['widget'];
-
+  // Without admin form.
   if (!$widget) {
     // Add admin setting form for table hours.
     $court_form = drupal_get_form('booking_calendar_courts_form');
     $courts_form_html = render($court_form);
-
     $output .= $courts_form_html;
   }
 
@@ -402,6 +451,8 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
     $k++;
   }
   $output .= '</tr></thead>';
+
+
   foreach ($hours as $hour) {
     $output .= '<tr>';
 
@@ -576,3 +627,585 @@ function theme_booking_calendar_admin($variables) {
 }
 
 
+/**
+ * @file
+ */
+
+function booking_calendar_courts_form($form, &$form_state) {
+
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+
+    // Get data for current click state.
+    if (!empty($_SESSION['current_select'])) {
+      $current_state = $_SESSION['current_select'];
+      $year = $current_state['year'];
+      $month = $current_state['month'];
+      $day = $current_state['day'];
+      if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
+        $courts = $_SESSION['table_hours'][$year][$month][$day];
+      }
+    }
+    else {
+      $year = date('Y');
+      $month = date('n');
+      $day = date('j');
+    }
+  }
+  else {
+    $courts = _default_hours_and_name_courts();
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
+  }
+
+
+  $form['courts'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Courts settings for ') . '<strong>' . $year . '/' . $month . '/' . $day . '</strong>',
+    '#weight' => 5,
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['courts']['names'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Courts names'),
+    '#weight' => 2,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+
+  $form['courts']['actions'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Courts actions'),
+    '#weight' => 3,
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['courts']['actions']['delete'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Courts delete'),
+    '#weight' => 3,
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['courts']['actions']['add'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Courts add'),
+    '#weight' => 3,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  if ($_SESSION['current_select']) {
+    $year = $_SESSION['current_select']['year'];
+    $month = $_SESSION['current_select']['month'];
+    $day = $_SESSION['current_select']['day'];
+  }
+  else {
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
+  }
+
+
+  if (empty($_SESSION['hours_settings'])) {
+    $hours_settings = variable_get('booking_hours_settings', '');
+  }
+  else {
+    $hours_settings = $_SESSION['hours_settings'];
+  }
+
+
+  if (!empty($hours_settings)) {
+    $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+    $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+  }
+  else {
+    $hour_begin = 8;
+    $hour_end = 22;
+  }
+
+  $form['courts']['hour_begin'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Hour begin'),
+    '#default_value' => $hour_begin,
+    '#size' => 60,
+    '#maxlength' => 128,
+  );
+  $form['courts']['hour_end'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Hour end'),
+    '#default_value' => $hour_end,
+    '#size' => 60,
+    '#maxlength' => 128,
+  );
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $flag = TRUE;
+  }
+
+  foreach ($courts as $court) {
+    $form['courts']['names']['name']['name-' . $court['name']] = array(
+      '#type' => 'textfield',
+      '#title' => t('Name court'),
+      '#default_value' => $court['name'],
+      '#size' => 60,
+      '#maxlength' => 128,
+    );
+
+    $form['courts']['prices']['price']['price-' . $court['name']] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Courts prices') . ' ' . $court['name'],
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+
+    if ($_SESSION['current_select']) {
+      $year = $_SESSION['current_select']['year'];
+      $month = $_SESSION['current_select']['month'];
+      $day = $_SESSION['current_select']['day'];
+    }
+    else {
+      $year = date('Y');
+      $month = date('n');
+      $day = date('j');
+    }
+
+    $hours = array();
+    $minutes = 0;
+    $interval = 30;
+
+    if (empty($_SESSION['hours_settings'])) {
+      $hours_settings = variable_get('booking_hours_settings', '');
+    }
+    else {
+      $hours_settings = $_SESSION['hours_settings'];
+    }
+
+
+    if (empty($hours_settings)) {
+      $hour_begin = 8;
+      $hour_end = 22;
+    }
+    else {
+      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+    }
+
+
+    // Count = (($hour_end - $hound_begin)*interval for hours)+2.
+    $count = (($hour_end - $hour_begin) * 2) + 2;
+
+    for ($i = 0; $i < $count; $i++) {
+      $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
+      $minutes += $interval;
+    }
+
+
+    foreach ($hours as $hour) {
+      $hour_key = str_replace(' : ', '_', $hour);
+
+      if (isset($court['hours'][$hour]['price'])) {
+        $default_value = $court['hours'][$hour]['price'];
+      }
+      else {
+        $default_value = array();
+      }
+
+
+      $form['courts']['prices']['price']['price-' . $court['name']][$court['name'] . '_' . $hour_key] = array(
+        '#type' => 'textfield',
+        '#title' => t('Price court ') . $court['name'] . '  ' . $hour,
+        '#default_value' => $default_value,
+        '#size' => 60,
+        '#maxlength' => 128,
+      );
+
+    }
+
+
+    $form['courts']['actions']['delete'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete court'),
+      '#attributes' => array('class' => array('delete-form')),
+    );
+    $form['courts']['actions']['add'] = array(
+      '#type' => 'submit',
+      '#value' => t('Add court'),
+      '#attributes' => array('class' => array('add-form')),
+    );
+    $form['courts']['actions']['add_name_court'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Name new court'),
+      '#default_value' => 'U4',
+      '#size' => 25,
+      '#maxlength' => 32,
+      '#attributes' => array('class' => array('add-form-name')),
+    );
+  }
+
+
+  $form['submit_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save cofiguration'),
+    '#weight' => 10,
+  );
+
+  return $form;
+}
+
+function booking_calendar_courts_form_submit($form, &$form_state) {
+
+
+  $hours = array();
+  $minutes = 0;
+  $interval = 30;
+
+
+  if (!isset($form_state['values']['hour_begin']) || !isset($form_state['values']['hour_end'])) {
+    $hour_begin = 8;
+    $hour_end = 22;
+  }
+  else {
+    $hour_begin = $form_state['values']['hour_begin'];
+    $hour_end = $form_state['values']['hour_end'];
+  }
+
+  //count = (($hour_end - $hound_begin)*interval for hours)+2;
+  $count = (($hour_end - $hour_begin) * 2) + 2;
+
+
+  $hours_settings = array(
+    'hour_begin' => $hour_begin,
+    'hour_end' => $hour_end,
+    'hour_count' => $count,
+  );
+
+
+  for ($i = 0; $i < $count; $i++) {
+    $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
+    $minutes += $interval;
+  }
+
+
+  $courts = array(
+    1 => array(
+      'name' => 'U1',
+      'price' => 0,
+    ),
+    2 => array(
+      'name' => 'U2',
+      'price' => 0,
+    ),
+    3 => array(
+      'name' => 'U3',
+      'price' => 0,
+    ),
+    4 => array(
+      'name' => 'U4',
+      'price' => 0,
+    ),
+  );
+
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+  }
+
+  // ***** Begin create courts final *****
+
+  $courts_final = array();
+  foreach ($courts as $court) {
+    foreach ($hours as $hour) {
+      $hour_key = str_replace(' : ', '_', $hour);
+
+      $hours_prices_new_court[$hour_key] = array(
+        'hour' => $hour,
+        'price' => 0,
+      );
+      if (isset($form_state['values'][$court['name'] . '_' . $hour_key])) {
+        $hours_prices[$hour] = array(
+          'hour' => $hour,
+          'price' => $form_state['values'][$court['name'] . '_' . $hour_key],
+        );
+      }
+      else {
+        $hours_prices[$hour] = array(
+          'hour' => $hour,
+          'price' => 0,
+        );
+      }
+
+
+      $courts_final[$court['name']] = array(
+        'name' => $form_state['values']['name-' . $court['name']],
+        'hours' => $hours_prices,
+      );
+    }
+  }
+  //dsm($courts_final);
+  // ***** End create courts final *****
+
+
+  if ($form_state['triggering_element']['#value'] == 'Add court') {
+    $new_court[$form_state['values']['add_name_court']] = array(
+      'name' => $form_state['values']['add_name_court'],
+      'hours' => $hours_prices_new_court,
+    );
+    if (count($courts_final) < 5) {
+      $courts_final = array_merge($courts_final, $new_court);
+    }
+
+  }
+
+  if ($form_state['triggering_element']['#value'] == 'Delete court') {
+    if (count($courts_final) > 1) {
+      array_pop($courts_final);
+    }
+  }
+
+
+  if ($_SESSION['current_select']) {
+    $year = $_SESSION['current_select']['year'];
+    $month = $_SESSION['current_select']['month'];
+    $day = $_SESSION['current_select']['day'];
+  }
+  else {
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
+  }
+
+  $_SESSION['hours_settings'][$year][$month][$day] = $hours_settings;
+
+  variable_set('booking_hours_settings', $_SESSION['hours_settings']);
+
+
+  variable_set('booking_calendar_names_courts', $courts_final);
+
+  // Save for curren click state.
+  if (!empty($_SESSION['current_select'])) {
+    $current_state = $_SESSION['current_select'];
+    $year = $current_state['year'];
+    $month = $current_state['month'];
+    $day = $current_state['day'];
+    $_SESSION['table_hours'][$year][$month][$day] = $courts_final;
+  }
+
+
+  //dsm($_SESSION);
+
+}
+
+
+/**
+ * @file
+ */
+
+
+/**
+ * @return mixed
+ * Calculate calendar arrays.
+ */
+function _booking_calendar_calculate() {
+
+  // We calculate the number of days in the current month.
+  $dayofmonth = date('t');
+  // Counter for the days of the month.
+  $day_count = 1;
+
+  $month = date('n');
+
+  $week = array();
+
+  // 1. The first week.
+  $num = 0;
+  for ($i = 0; $i < 7; $i++) {
+    // Calculate the number of days of the week for the number of.
+    $dayofweek = date('w', mktime(0, 0, 0, $month, $day_count, date('Y')));
+
+    // Leads to a number of the format 1 - Monday, ..., 6 - Saturday.
+    $dayofweek = $dayofweek - 1;
+    if ($dayofweek == -1) {
+      $dayofweek = 6;
+    }
+
+    if ($dayofweek == $i) {
+      // If the same days of the week,
+      // Fill the array $week
+      // Number of months.
+      $week[$num][$i] = $day_count;
+      $day_count++;
+    }
+    else {
+      $week[$num][$i] = "";
+    }
+  }
+
+  // 2. The following week of the month.
+  while (TRUE) {
+    $num++;
+    for ($i = 0; $i < 7; $i++) {
+      $week[$num][$i] = $day_count;
+      $day_count++;
+      // If you have reached the end of the month - leave
+      // The loop.
+      if ($day_count > $dayofmonth) {
+        break;
+      }
+    }
+    // If you have reached the end of the month - leave
+    // From the cycle.
+    if ($day_count > $dayofmonth) {
+      break;
+    }
+  }
+  return $week;
+}
+
+/**
+ * @return array
+ * Default values for table hours
+ */
+function _default_hours_and_name_courts() {
+
+  $hours = array();
+
+  $minutes = 0;
+  $interval = 30;
+
+  if ($_SESSION['current_select']) {
+    $year = $_SESSION['current_select']['year'];
+    $month = $_SESSION['current_select']['month'];
+    $day = $_SESSION['current_select']['day'];
+  }
+  else {
+    $year = date('Y');
+    $month = date('n');
+    $day = date('j');
+  }
+
+
+  if (empty($_SESSION['hours_settings'])) {
+    $hours_settings = variable_get('booking_hours_settings', '');
+  }
+  else {
+    $hours_settings = $_SESSION['hours_settings'];
+  }
+
+
+  if (empty($hours_settings)) {
+    $hour_end = 22;
+    $hour_begin = 8;
+  }
+  else {
+    $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+    $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+  }
+
+
+  //count = (($hour_end - $hound_begin)*interval for hours)+2;
+  $count = (($hour_end - $hour_begin) * 2) + 2;
+
+
+  for ($i = 0; $i < $count; $i++) {
+    $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
+    $minutes += $interval;
+  }
+
+  // Define default values.
+  $courts = array();
+
+  $courts = array(
+    1 => array(
+      'name' => 'U1',
+      'price' => 0,
+    ),
+    2 => array(
+      'name' => 'U2',
+      'price' => 0,
+    ),
+    3 => array(
+      'name' => 'U3',
+      'price' => 0,
+    ),
+    4 => array(
+      'name' => 'U4',
+      'price' => 0,
+    ),
+  );
+
+  $courts_final = array();
+
+  foreach ($courts as $court) {
+    foreach ($hours as $hour) {
+      $hours_prices[$hour] = array(
+        'hour' => $hour,
+        'price' => 0,
+      );
+      $courts_final[$court['name']] = array(
+        'name' => $court['name'],
+        'hours' => $hours_prices,
+      );
+    }
+  }
+  return $courts_final;
+}
+
+
+/**
+ * @param $value
+ * @return mixed
+ * Custom function for create valid form-state keys for drupal form submit function.
+ */
+function _form_valid_keys($value) {
+  return (str_replace(' : ', '_', $value));
+}
+
+/**
+ * @param $value
+ * @return string
+ * Conver arabic number values to roman.
+ */
+function _arabic_to_roman($value) {
+  if ($value < 0) {
+    $value = -$value;
+  }
+  if (!$value) {
+    return "0";
+  }
+  $thousands = (int) ($value / 1000);
+  $value -= $thousands * 1000;
+  $result = str_repeat("M", $thousands);
+  $table = array(
+    900 => "CM",
+    500 => "D",
+    400 => "CD",
+    100 => "C",
+    90 => "XC",
+    50 => "L",
+    40 => "XL",
+    10 => "X",
+    9 => "IX",
+    5 => "V",
+    4 => "IV",
+    1 => "I"
+  );
+  while ($value) {
+    foreach ($table as $part => $fragment) {
+      if ($part <= $value) {
+        break;
+      }
+    }
+    $amount = (int) ($value / $part);
+    $value -= $part * $amount;
+    $result .= str_repeat($fragment, $amount);
+  }
+  return $result;
+}

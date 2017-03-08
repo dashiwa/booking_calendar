@@ -62,7 +62,7 @@
     right: 8px;
 }
 
-#block-booking-calendar-booking-calendar-widget .this {
+#block-booking-calendar-booking-calendar-widget .this, #block-booking-calendar-booking-calendar-widget .select {
     background-color: #fbb44c;
     color: white;
 }
