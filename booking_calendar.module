@@ -151,7 +151,7 @@ function booking_calendar_admin_settings() {
   //module_load_include('inc', 'booking_calendar', 'booking_calendar');
 
   //dsm(variable_get('booking_calendar_names_courts', ''));
-  //dsm($_SESSION);
+  dsm($_SESSION);
 
   $output = '';
   $output .= '<div id="t3"></div>';
@@ -379,8 +379,14 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
     $hour_begin = 8;
   }
   else {
-    $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
-    $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+    if (isset($hours_settings[$year]) && isset($hours_settings[$year][$month]) && isset($hours_settings[$year][$month][$day])) {
+      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+    }
+    else {
+      $hour_end = 22;
+      $hour_begin = 8;
+    }
   }
 
 
@@ -722,13 +728,19 @@ function booking_calendar_courts_form($form, &$form_state) {
   }
 
 
-  if (!empty($hours_settings)) {
-    $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
-    $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+  if (empty($hours_settings)) {
+    $hour_end = 22;
+    $hour_begin = 8;
   }
   else {
-    $hour_begin = 8;
-    $hour_end = 22;
+    if (isset($hours_settings[$year]) && isset($hours_settings[$year][$month]) && isset($hours_settings[$year][$month][$day])) {
+      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+    }
+    else {
+      $hour_end = 22;
+      $hour_begin = 8;
+    }
   }
 
   $form['courts']['hour_begin'] = array(
@@ -791,12 +803,18 @@ function booking_calendar_courts_form($form, &$form_state) {
 
 
     if (empty($hours_settings)) {
-      $hour_begin = 8;
       $hour_end = 22;
+      $hour_begin = 8;
     }
     else {
-      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
-      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+      if (isset($hours_settings[$year]) && isset($hours_settings[$year][$month]) && isset($hours_settings[$year][$month][$day])) {
+        $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+        $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+      }
+      else {
+        $hour_end = 22;
+        $hour_begin = 8;
+      }
     }
 
 
