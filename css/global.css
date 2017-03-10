@@ -8,6 +8,11 @@
     border-color: #ebebeb;
 }
 
+#block-booking-calendar-booking-calendar-widget td.av {
+    background-color: #90ee90;
+}
+
+
 #block-booking-calendar-booking-calendar-widget .year {
     text-align: center;
 }
@@ -62,8 +67,14 @@
     right: 8px;
 }
 
-#block-booking-calendar-booking-calendar-widget .this, #block-booking-calendar-booking-calendar-widget .select {
-    background-color: #fbb44c;
+#block-booking-calendar-booking-calendar-widget .this {
+    background: red;
+    color: white;
+}
+
+#block-booking-calendar-booking-calendar-widget .select {
+
+    border: 2px solid #fbb44c;
     color: white;
 }
 

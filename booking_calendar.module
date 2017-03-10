@@ -5,6 +5,7 @@
  * Main finctions for booking calendar.
  */
 
+
 /**
  * Implements hook_init().
  */
@@ -16,6 +17,8 @@ function booking_calendar_init() {
   drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/widget.js');
   //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
   //module_load_include('inc', 'booking_calendar', 'booking_calendar');
+
+  dsm($_SESSION);
 }
 
 /**
@@ -126,11 +129,30 @@ function booking_calendar_block_contents($which_block) {
       break;
 
     case 'booking_calendar_table_widget':
-      $result = array(
-        '#markup' => theme('booking_calendar_admin_table_day_hours', array(
-          'widget' => TRUE
-        )),
-      );
+      if (!empty($_SESSION['current_select'])) {
+        // Select curren state table!
+        $current_state = $_SESSION['current_select'];
+        $year = $current_state['year'];
+        $month = $current_state['month'];
+        $day = $current_state['day'];
+
+        $result = array(
+          '#markup' => theme('booking_calendar_admin_table_day_hours', array(
+            'year' => $year,
+            'month' => $month,
+            'day' => $day,
+            'widget' => TRUE,
+          ))
+        );
+      }
+      else {
+        $result = array(
+          '#markup' => theme('booking_calendar_admin_table_day_hours', array(
+            'widget' => TRUE,
+          ))
+        );
+      }
+
       break;
 
   }
@@ -151,7 +173,7 @@ function booking_calendar_admin_settings() {
   //module_load_include('inc', 'booking_calendar', 'booking_calendar');
 
   //dsm(variable_get('booking_calendar_names_courts', ''));
-  dsm($_SESSION);
+
 
   $output = '';
   $output .= '<div id="t3"></div>';
@@ -230,20 +252,22 @@ function booking_calendar_month_ajax() {
 
     $current_select = (array) $current_select;
 
+    if (!$widget) {
+      // Save values in session
+      $_SESSION['tables'][$year][$month][$day] = $table;
 
-    // Save values in session
-    $_SESSION['tables'][$year][$month][$day] = $table;
+      if (count($current_select) > 0) {
+        $_SESSION['current_select'] = $current_select;
+        $current_select_base = $_SESSION['current_select'];
+        variable_set('current_select', $current_select_base);
+      }
 
-    if (count($current_select) > 0) {
-      $_SESSION['current_select'] = $current_select;
-      $current_select_base = $_SESSION['current_select'];
-      variable_set('current_select', $current_select_base);
+
+      $booking_tables = $_SESSION['tables'];
+      // If session is expired save value in database
+      variable_set('booking_calendar_book_table', $booking_tables);
     }
 
-
-    $booking_tables = $_SESSION['tables'];
-    // If session is expired save value in database
-    variable_set('booking_calendar_book_table', $booking_tables);
 
 
     // 1. The first week.
@@ -354,7 +378,7 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
   $minutes = 0;
   $interval = 30;
 
-  if ($_SESSION['current_select']) {
+  if (isset($_SESSION['current_select'])) {
     $year = $_SESSION['current_select']['year'];
     $month = $_SESSION['current_select']['month'];
     $day = $_SESSION['current_select']['day'];
@@ -393,7 +417,7 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
   //count = (($hour_end - $hound_begin)*interval for hours)+2;
   $count = (($hour_end - $hour_begin) * 2) + 2;
 
-  dsm($hours_settings);
+
   for ($i = 0; $i < $count; $i++) {
     $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
     $minutes += $interval;
@@ -708,7 +732,7 @@ function booking_calendar_courts_form($form, &$form_state) {
     '#collapsed' => TRUE,
   );
 
-  if ($_SESSION['current_select']) {
+  if (isset($_SESSION['current_select'])) {
     $year = $_SESSION['current_select']['year'];
     $month = $_SESSION['current_select']['month'];
     $day = $_SESSION['current_select']['day'];
@@ -779,7 +803,7 @@ function booking_calendar_courts_form($form, &$form_state) {
     );
 
 
-    if ($_SESSION['current_select']) {
+    if (isset($_SESSION['current_select'])) {
       $year = $_SESSION['current_select']['year'];
       $month = $_SESSION['current_select']['month'];
       $day = $_SESSION['current_select']['day'];
@@ -1017,8 +1041,6 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   }
 
 
-  //dsm($_SESSION);
-
 }
 
 
@@ -1098,7 +1120,7 @@ function _default_hours_and_name_courts() {
   $minutes = 0;
   $interval = 30;
 
-  if ($_SESSION['current_select']) {
+  if (isset($_SESSION['current_select'])) {
     $year = $_SESSION['current_select']['year'];
     $month = $_SESSION['current_select']['month'];
     $day = $_SESSION['current_select']['day'];

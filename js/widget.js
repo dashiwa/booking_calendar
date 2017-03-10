@@ -8,8 +8,8 @@
             var month = $('#controls .prev').attr('data-month');
             var day = $(this).text();
             var widget = true;
-
-
+            $('#block-booking-calendar-booking-calendar-widget tbody td').not(this).removeClass('selected-user');
+            $(this).addClass('selected-user');
             console.log($(this));
 
             ajaxWidgetCalendar(year, month, day, widget);
@@ -30,7 +30,7 @@ function ajaxWidgetCalendar(year, month, day, widget) {
         method: "POST",
         data: postString,
         success: function (data) {
-            console.log(data['hours_table']);
+            $('#booking-courts-wrapper').html(data['hours_table']);
         }
     });
 }

@@ -10,4 +10,5 @@ function booking_calendar_uninstall() {
   unset($_SESSION['tables']);
   unset($_SESSION['current_select']);
   unset($_SESSION['table_hours']);
+  unset($_SESSION['hours_settings']);
 }
