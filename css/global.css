@@ -1,3 +1,12 @@
+
+#t3 {
+    margin: auto;
+    width: 24px;
+    height: 24px;
+    background: url('../img/ajax-loader.gif') no-repeat;
+    display: none;
+}
+
 #block-booking-calendar-booking-calendar-widget {
     padding: 10px;
 }
@@ -72,9 +81,8 @@
     color: white;
 }
 
-#block-booking-calendar-booking-calendar-widget .select {
-
-    border: 2px solid #fbb44c;
+#block-booking-calendar-booking-calendar-widget .selected-user {
+    background: #fbb44c !important;
     color: white;
 }
 
