@@ -1,5 +1,5 @@
 
-#t3 {
+#t3, #t4 {
     margin: auto;
     width: 24px;
     height: 24px;
@@ -19,6 +19,14 @@
 
 #block-booking-calendar-booking-calendar-widget td.av {
     background-color: #90ee90;
+}
+
+#block-booking-calendar-booking-calendar-widget td.na {
+    background-color: #ffb6c1;
+}
+
+#block-booking-calendar-booking-calendar-widget td.opt {
+    background-color: #aaaaaa;
 }
 
 
@@ -94,5 +102,16 @@
     text-align: center;
     border-color: rgba(58, 152, 216, 0.16);
     background-color: rgba(58, 152, 216, 0.09);
+    cursor: pointer;
 
+}
+
+#block-booking-calendar-booking-calendar-table-widget td.selected-user {
+    font-size: 0;
+}
+
+#block-booking-calendar-booking-calendar-table-widget td.selected-user::before {
+    content: "\2714";
+    font-size: 18px;
+    color: #33a333;
 }

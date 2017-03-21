@@ -27,11 +27,28 @@ function booking_calendar_menu() {
     'access arguments' => array('administer booking calendar'),
     'type' => MENU_CALLBACK,
   );
+
+
   $items['booking/calendar/ajax'] = array(
     'page callback' => 'booking_calendar_month_ajax',
-    'access arguments' => array('administer booking calendar'),
+    'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
+
+
+  $items['booking/calendar/widget/calendar/select/ajax'] = array(
+    'page callback' => 'booking_calendar_widget_calendar_select_ajax',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['booking/calendar/widget/calendar/table/book/ajax'] = array(
+    'page callback' => 'booking_calendar_widget_table_book_ajax',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+
   return $items;
 }
 
@@ -70,9 +87,18 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
         'ajax' => FALSE,
       ),
     ),
+    'booking_calendar_widget_select_day_hours' => array(
+      'variables' => array(
+        'year' => NULL,
+        'month' => NULL,
+        'day' => NULL,
+      ),
+    ),
+    'booking_calendar_cart_pre_output' => array(
+      'variables' => array(),
+    ),
   );
 }
-
 
 /**
  * Implements hook_block_info().
@@ -118,39 +144,28 @@ function booking_calendar_block_contents($which_block) {
 
   switch ($which_block) {
     case 'booking_calendar_widget':
+      $cart_pre_output = theme_booking_calendar_cart_pre_output();
       $result = array(
         '#markup' => '<div id="t3"></div>' . theme('booking_calendar_admin', array(
             'week' => _booking_calendar_calculate(),
             'widget' => TRUE
-          )),
+          ))
+          . $cart_pre_output
       );
       break;
 
     case 'booking_calendar_table_widget':
-      if (!empty($_SESSION['current_select'])) {
-        // Select curren state table!
-        $current_state = $_SESSION['current_select'];
-        $year = $current_state['year'];
-        $month = $current_state['month'];
-        $day = $current_state['day'];
+      $year = date('Y');
+      $month = date('n');
+      $day = date('j');
 
-        $result = array(
-          '#markup' => theme('booking_calendar_admin_table_day_hours', array(
-            'year' => $year,
-            'month' => $month,
-            'day' => $day,
-            'widget' => TRUE,
-          ))
-        );
-      }
-      else {
-        $result = array(
-          '#markup' => theme('booking_calendar_admin_table_day_hours', array(
-            'widget' => TRUE,
-          ))
-        );
-      }
-
+      $result = array(
+        '#markup' => theme('booking_calendar_widget_select_day_hours', array(
+          'year' => $year,
+          'month' => $month,
+          'day' => $day,
+        ))
+      );
       break;
 
   }
@@ -163,15 +178,8 @@ function booking_calendar_block_contents($which_block) {
  * page.
  */
 function booking_calendar_admin_settings() {
-
   drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/calendar.js');
   drupal_add_css(drupal_get_path('module', 'booking_calendar') . '/css/calendar.css');
-
-  //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
-  //module_load_include('inc', 'booking_calendar', 'booking_calendar');
-
-  //dsm(variable_get('booking_calendar_names_courts', ''));
-
 
   $output = '';
   $output .= '<div id="t3"></div>';
@@ -223,11 +231,292 @@ function booking_calendar_admin_settings() {
  */
 
 
+/**********************************WIDGET AJAX*******************************/
+
+/**
+ * Ajax callback for select calendar widget.
+ */
+function booking_calendar_widget_calendar_select_ajax() {
+  if (count($_POST)) {
+    isset($_POST['day']) ? $day = $_POST['day'] : $day = date('j');
+    isset($_POST['month_number']) ? $month = $_POST['month_number'] : $month = date('n');
+    isset($_POST['year']) ? $year = $_POST['year'] : $year = date('Y');
+    $hours_table = theme('booking_calendar_admin_table_day_hours', array(
+      'year' => $year,
+      'month' => $month,
+      'day' => $day,
+      'widget' => TRUE,
+      'ajax' => TRUE,
+    ));
+    $response = array(
+      'hours_table' => $hours_table,
+    );
+    return drupal_json_output($response);
+  }
+  return drupal_not_found();
+}
+
+
+/**
+ * @param $variables
+ * @return string
+ */
+function theme_booking_calendar_widget_select_day_hours($variables) {
+
+
+  $hours = array();
+  $minutes = 0;
+  $interval = 30;
+
+  $year = $variables['year'];
+  $month = $variables['month'];
+  $day = $variables['day'];
+
+  if (empty($_SESSION['hours_settings'])) {
+    $hours_settings = variable_get('booking_hours_settings', '');
+  }
+  else {
+    $hours_settings = $_SESSION['hours_settings'];
+  }
+
+
+  if (empty($hours_settings)) {
+    $hour_end = 22;
+    $hour_begin = 8;
+  }
+  else {
+    if (isset($hours_settings[$year]) && isset($hours_settings[$year][$month]) && isset($hours_settings[$year][$month][$day])) {
+      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+
+      $year = $variables['year'];
+      $month = $variables['month'];
+      $day = $variables['day'];
+      $hour_end = $hours_settings[$year][$month][$day]['hour_end'];
+      $hour_begin = $hours_settings[$year][$month][$day]['hour_begin'];
+    }
+    else {
+      $hour_end = 22;
+      $hour_begin = 8;
+    }
+  }
+
+
+  /****************************** MAIN LOGIC **********************************/
+
+  //count = (($hour_end - $hound_begin)*interval for hours)+2;
+  $count = (($hour_end - $hour_begin) * 2) + 2;
+  /********* CREATE HOURS ARRAY **********/
+  for ($i = 0; $i < $count; $i++) {
+    $hours[$i] = date('H : i', mktime($hour_begin, $minutes, 0, date('n'), date('j'), date('Y')));
+    $minutes += $interval;
+  }
+
+  /*********** CREATE COURTS SETTINGS ARRAY - NAME - PRICE etc ************/
+  if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+    $courts = variable_get('booking_calendar_names_courts', '');
+    if (!empty($_SESSION['table_hours'])) {
+      if (isset($_SESSION['table_hours'][$year]) && isset($_SESSION['table_hours'][$year][$month]) && isset($_SESSION['table_hours'][$year][$month][$day])) {
+        $courts = $_SESSION['table_hours'][$year][$month][$day];
+      }
+    }
+  }
+  else {
+    $courts = _default_hours_and_name_courts();
+  }
+
+  //Add fist column - time.
+  array_unshift($courts, array('name' => t('TIME - ') . $year . '-' . $month . '-' . $day));
+
+
+  /********************** END MAIN LOGIC ********************/
+
+
+  /************************* CREATE HTML OUTPUT ************/
+
+  $output = '';
+  $classes = ' ';
+  $output .= '<div id="t4" style="display: none;"></div><div id="booking-courts-wrapper"><table id="booking-courts"><thead><tr>';
+  $k = 1;
+  foreach ($courts as $court) {
+    if ($k == 1) {
+      $classes .= 'first';
+    }
+    else {
+      $classes = '';
+    }
+
+
+    if (!empty($court['name'])) {
+      $output .= '<td class="' . $classes . '">' . $court['name'] . '</td>';
+    }
+    else {
+      $output .= '<td></td>';
+    }
+    $k++;
+  }
+  $output .= '</tr></thead>';
+
+  foreach ($hours as $hour) {
+    $output .= '<tr>';
+    $a = 0;
+    foreach ($courts as $court) {
+      if ($a == 0) {
+        $output .= '<td>' . $hour . '</td>';
+      }
+      else {
+        if ($court['name']) {
+          $hour_key = str_replace(' : ', '_', $hour);
+          if (!empty(variable_get('booking_calendar_names_courts', ''))) {
+            if (isset($court['hours'][$hour]['price'])) {
+              if (array_key_exists($court['name'], $_SESSION['client_hours'][$year][$month][$day]) && array_key_exists($hour, $_SESSION['client_hours'][$year][$month][$day][$court['name']])) {
+
+                $output .= '<td class="value selected-user" year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '€' . '</td>';
+
+
+              }
+              else {
+                $output .= '<td class="value " year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '€' . '</td>';
+              }
+            }
+            else {
+              $output .= '<td class="value " year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . 0 . '€' . '</td>';
+            }
+          }
+          else {
+            $output .= '<td class="value " year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '</td>';
+          }
+        }
+      }
+      $a++;
+    }
+    '</tr>';
+  }
+  $output .= '</table></div>';
+
+  return $output;
+}
+
+
+function booking_calendar_widget_table_book_ajax() {
+
+
+  $flag = $_POST['flag'];
+  $table_client = (array) json_decode($_POST['table_client']);
+  // Clear js values!
+  $table_client = TrimArray($table_client);
+  $year = $table_client['year'];
+  $month = $table_client['month'];
+  $day = $table_client['day'];
+  $hour = $table_client['hour'];
+  $court = $table_client['name'];
+  $price = $table_client['price'];
+
+
+  // Save click values in SESSION.
+  $_SESSION['client_hours'][$year][$month][$day][$court][$hour] = $price;
+
+
+  if ($flag == 'select') {
+    // _booking_calendar_commerce_create_order(_booking_calendar_commerce_create_product($table_client));
+  }
+  elseif ($flag == 'unselect') {
+
+    // Delete unselect value in SESSION.
+    unset($_SESSION['client_hours'][$year][$month][$day][$court][$hour]);
+
+
+    $orders = db_select('commerce_order', 'co')
+      ->fields('co', array('order_id'))
+      ->execute()
+      ->fetchAll();
+    foreach ($orders as $row_order) {
+      $orders_ids[] = $row_order->order_id;
+    }
+    // commerce_order_delete(array_pop($orders_ids));
+
+    $products = db_select('commerce_product', 'cp')
+      ->fields('cp', array('product_id'))
+      ->execute()
+      ->fetchAll();
+    foreach ($products as $row) {
+      $products_ids[] = $row->product_id;
+    }
+    // commerce_product_delete(array_pop($products_ids));
+
+  }
+
+
+}
+
+
+function _booking_calendar_commerce_create_product($table) {
+  global $user;
+  $uid = $user->uid;
+
+  $year = $table['year'];
+  $month = $table['month'];
+  $day = $table['day'];
+  $court = $table['court'];
+  $name = $table['name'];
+  $price = $table['price'];
+  $hour = $table['hour'];
+
+  $product = commerce_product_new('product');
+  $product->uid = $uid;
+  $product->sku = time();
+  $product->title = $name;
+  $product->language = LANGUAGE_NONE;
+  $product->commerce_price[LANGUAGE_NONE][0] = array(
+    'amount' => $price * 100, // $10
+    'currency_code' => "EUR",
+  );
+  $product->field_year[LANGUAGE_NONE][0]['value'] = $year;
+  $product->field_month[LANGUAGE_NONE][0]['value'] = $month;
+  $product->field_day[LANGUAGE_NONE][0]['value'] = $day;
+  $product->field_hour[LANGUAGE_NONE][0]['value'] = $hour;
+  $product->field_court[LANGUAGE_NONE][0]['value'] = $court;
+
+  commerce_product_save($product);
+  $product_id = commerce_product_load_by_sku($product->sku);
+  return ($product_id->product_id);
+}
+
+function _booking_calendar_commerce_create_order($product_id) {
+  global $user;
+
+// Create the new order in checkout; you might also check first to
+// see if your user already has an order to use instead of a new one.
+  $order = commerce_order_new($user->uid, 'cart');
+
+// Save the order to get its ID.
+  commerce_order_save($order);
+
+// Load whatever product represents the item the customer will be
+// paying for and create a line item for it.
+  $product = commerce_product_load($product_id);
+  $line_item = commerce_product_line_item_new($product, 1, $order->order_id);
+
+// Save the line item to get its ID.
+  commerce_line_item_save($line_item);
+
+// Add the line item to the order using fago's rockin' wrapper.
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $order_wrapper->commerce_line_items[] = $line_item;
+
+// Save the order again to update its line item reference field.
+  commerce_order_save($order);
+}
+
+
+/********************************** END WIDGET AJAX*******************************/
+
+
 /**
  * Ajax callback.
  */
 function booking_calendar_month_ajax() {
-  //module_load_include('inc', 'booking_calendar', 'booking_calendar.form');
+
   if (count($_POST)) {
     // We calculate the number of days in the current month.
     $dayofmonth = date('t');
@@ -247,6 +536,12 @@ function booking_calendar_month_ajax() {
     isset($_POST['widget']) ? $widget = TRUE : $widget = FALSE;
 
     $table = (array) $table;
+
+
+    if ($widget) {
+      $table_client = (array) json_decode($_POST['table_client']);
+      // _booking_calendar_commerce_create_product($table_client);
+    }
 
     $current_select = (array) $current_select;
 
@@ -344,6 +639,22 @@ function booking_calendar_month_ajax() {
     }
     else {
       $hours_table = theme('booking_calendar_admin_table_day_hours');
+      // If widget block
+      if ($widget) {
+        $year = $_POST['year'];
+        $month = $_POST['month_number'];
+        $day = $_POST['day'];
+
+        $hours_table = theme('booking_calendar_admin_table_day_hours', array(
+          'year' => $year,
+          'month' => $month,
+          'day' => $day,
+          'widget' => $widget,
+          'ajax' => TRUE,
+        ));
+
+
+      }
     }
 
 
@@ -373,6 +684,7 @@ function booking_calendar_month_ajax() {
 function theme_booking_calendar_admin_table_day_hours($variables) {
   //module_load_include('inc', 'booking_calendar', 'booking_calendar');
   $output = '';
+
 
   // For client table block variable.
   $widget = $variables['widget'];
@@ -435,7 +747,6 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
   }
 
 
-
   if (!empty(variable_get('booking_calendar_names_courts', ''))) {
     $courts = variable_get('booking_calendar_names_courts', '');
 
@@ -465,7 +776,7 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
 
 
   //Add fist column - time.
-  array_unshift($courts, array('name' => t('TIME')));
+  array_unshift($courts, array('name' => t('TIME - ') . $year . '-' . $month . '-' . $day));
 
 
   // Without admin form.
@@ -510,15 +821,15 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
           $hour_key = str_replace(' : ', '_', $hour);
           if (!empty(variable_get('booking_calendar_names_courts', ''))) {
             if (isset($court['hours'][$hour]['price'])) {
-              $output .= '<td>' . $court['hours'][$hour]['price'] . '€' . '</td>';
+              $output .= '<td class="value" year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '€' . '</td>';
             }
             else {
-              $output .= '<td>' . 0 . '€' . '</td>';
+              $output .= '<td class="value" year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . 0 . '€' . '</td>';
             }
 
           }
           else {
-            $output .= '<td>' . $court['hours'][$hour]['price'] . '</td>';
+            $output .= '<td class="value" year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '</td>';
           }
         }
       }
@@ -527,6 +838,13 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
     '</tr>';
   }
   $output .= '</table></div>';
+
+  return $output;
+}
+
+
+function theme_booking_calendar_cart_pre_output() {
+  $output = '<div class="pre-cart-output"></div>';
 
   return $output;
 }
@@ -917,7 +1235,17 @@ function booking_calendar_courts_form($form, &$form_state) {
   return $form;
 }
 
+function TrimArray($Input) {
+  if (!is_array($Input)) {
+    return trim($Input);
+  }
+  return array_map('TrimArray', $Input);
+}
+
 function booking_calendar_courts_form_submit($form, &$form_state) {
+
+  // Clear input values!
+  $form_state['values'] = TrimArray($form_state['values']);
 
 
   $hours = array();
@@ -974,7 +1302,7 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
     $courts = variable_get('booking_calendar_names_courts', '');
   }
 
-  // ***** Begin create courts final *****
+  /***** Begin create courts final *****/
 
   $courts_final = array();
   foreach ($courts as $court) {
@@ -1009,6 +1337,8 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   // ***** End create courts final *****
 
 
+  /*** CREATE NEW COURT AND DELETE OLD COURT *****/
+
   if ($form_state['triggering_element']['#value'] == 'Add court') {
     $new_court[$form_state['values']['add_name_court']] = array(
       'name' => $form_state['values']['add_name_court'],
@@ -1026,6 +1356,8 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
     }
   }
 
+  /********** END CREATE NEW COURT AND DELETE OLD COURT ************/
+
 
   if ($_SESSION['current_select']) {
     $year = $_SESSION['current_select']['year'];
@@ -1041,11 +1373,9 @@ function booking_calendar_courts_form_submit($form, &$form_state) {
   $_SESSION['hours_settings'][$year][$month][$day] = $hours_settings;
 
   variable_set('booking_hours_settings', $_SESSION['hours_settings']);
-
-
   variable_set('booking_calendar_names_courts', $courts_final);
 
-  // Save for curren click state.
+  // Save for current click state.
   if (!empty($_SESSION['current_select'])) {
     $current_state = $_SESSION['current_select'];
     $year = $current_state['year'];
@@ -1263,3 +1593,5 @@ function _arabic_to_roman($value) {
   }
   return $result;
 }
+
+
