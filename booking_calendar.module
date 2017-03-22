@@ -570,6 +570,10 @@ function _booking_calendar_commerce_create_order($product_id) {
 
     // Save the order again to update its line item reference field.
     commerce_order_save($order);
+
+    if (empty($user->uid)) {
+      commerce_cart_order_session_save($order->order_id);
+    }
   }
   else {
     // Create the new order in checkout; you might also check first to
@@ -593,6 +597,10 @@ function _booking_calendar_commerce_create_order($product_id) {
 
     // Save the order again to update its line item reference field.
     commerce_order_save($order);
+    // If the user is not logged in, ensure the order ID is stored in the session.
+    if (empty($user->uid)) {
+      commerce_cart_order_session_save($order->order_id);
+    }
   }
 
 
