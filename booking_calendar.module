@@ -441,7 +441,6 @@ function booking_calendar_widget_table_book_ajax() {
     foreach ($orders as $row_order) {
       $orders_ids[] = $row_order->order_id;
     }
-
     $last_order = array_pop($orders_ids);
 
     $count_line_items = db_select('commerce_line_item', 'clis')
@@ -450,10 +449,22 @@ function booking_calendar_widget_table_book_ajax() {
       ->execute()
       ->fetchField();
 
+    if (empty($count_line_items)) {
+      commerce_order_delete($last_order);
+    }
 
-    if ($count_line_items <= 1) {
-      // Delete current click product!
-      $query = db_query("SELECT fdfy.entity_id FROM field_data_field_year as fdfy
+      $line_items = db_select('commerce_line_item', 'cli')
+        ->fields('cli', array('line_item_id'))
+        //->condition('cli.order_id', $last_order)
+        ->execute()
+        ->fetchAll();
+      foreach ($line_items as $row_line_item) {
+        $line_item_ids[] = $row_line_item->line_item_id;
+      }
+      commerce_line_item_delete(array_pop($line_item_ids));
+
+    // Delete current click product!
+    $query = db_query("SELECT fdfy.entity_id FROM field_data_field_year as fdfy
                         left join field_data_field_month as fdfm
                         on fdfy.entity_id = fdfm.entity_id
                         left join field_data_field_day as fdfd
@@ -468,25 +479,13 @@ function booking_calendar_widget_table_book_ajax() {
                         field_hour_value = '$hour' AND
                         field_court_value = '$court';
                         ");
-      foreach ($query as $row_query) {
-        $product_id = $row_query->entity_id;
-      }
-      commerce_product_delete($product_id);
-      $last_order = array_pop($orders_ids);
-      commerce_order_delete(array_pop($orders_ids));
+    foreach ($query as $row_query) {
+      $product_id = $row_query->entity_id;
+    }
+    commerce_product_delete($product_id);
 
-    }
-    else {
-      $line_items = db_select('commerce_line_item', 'cli')
-        ->fields('cli', array('line_item_id'))
-        ->condition('cli.order_id', $last_order)
-        ->execute()
-        ->fetchAll();
-      foreach ($line_items as $row_line_item) {
-        $line_item_ids[] = $row_line_item->line_item_id;
-      }
-      commerce_line_item_delete(array_pop($line_item_ids));
-    }
+
+
   }
 
 
