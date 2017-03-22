@@ -56,8 +56,7 @@
             else {
                 flag = 'unselect';
             }
-            console.log(tableClient);
-            console.log(tableClient);
+
 
             ajaxWidgetCalendarHourBook(tableClient, flag);
         });
@@ -76,7 +75,7 @@ function ajaxWidgetCalendarSelect(year, month, day) {
         method: "POST",
         data: postString,
         success: function (data) {
-            console.log(data);
+
             $('#booking-courts-wrapper').html(data['hours_table']);
         }
     });
@@ -94,7 +93,7 @@ function ajaxWidgetCalendarHourBook(tableClient, flag) {
         method: "POST",
         data: postString,
         success: function (data) {
-            // $('#booking-courts-wrapper').html(data['hours_table']);
+            $('#block-commerce-cart-cart').html(data['cart_block']);
         }
     });
 }

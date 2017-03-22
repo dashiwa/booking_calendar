@@ -397,9 +397,8 @@ function theme_booking_calendar_widget_select_day_hours($variables) {
   return $output;
 }
 
-
+//_booking_calendar_clear_all_products();
 function booking_calendar_widget_table_book_ajax() {
-
 
   $flag = $_POST['flag'];
   $table_client = (array) json_decode($_POST['table_client']);
@@ -415,10 +414,18 @@ function booking_calendar_widget_table_book_ajax() {
 
   // Save click values in SESSION.
   $_SESSION['client_hours'][$year][$month][$day][$court][$hour] = $price;
-
+  global $user;
 
   if ($flag == 'select') {
-    // _booking_calendar_commerce_create_order(_booking_calendar_commerce_create_product($table_client));
+
+
+    $product_id = _booking_calendar_commerce_create_product($table_client);
+    // Create the new order in checkout; you might also check first to
+    // see if your user already has an order to use instead of a new one.`
+    _booking_calendar_commerce_create_order($product_id);
+
+
+
   }
   elseif ($flag == 'unselect') {
 
@@ -428,23 +435,70 @@ function booking_calendar_widget_table_book_ajax() {
 
     $orders = db_select('commerce_order', 'co')
       ->fields('co', array('order_id'))
+      ->condition('co.uid', $user->uid)
       ->execute()
       ->fetchAll();
     foreach ($orders as $row_order) {
       $orders_ids[] = $row_order->order_id;
     }
-    // commerce_order_delete(array_pop($orders_ids));
 
-    $products = db_select('commerce_product', 'cp')
-      ->fields('cp', array('product_id'))
+    $last_order = array_pop($orders_ids);
+
+    $count_line_items = db_select('commerce_line_item', 'clis')
+      ->condition('clis.order_id', $last_order)
+      ->countQuery()
       ->execute()
-      ->fetchAll();
-    foreach ($products as $row) {
-      $products_ids[] = $row->product_id;
-    }
-    // commerce_product_delete(array_pop($products_ids));
+      ->fetchField();
 
+
+    if ($count_line_items <= 1) {
+      // Delete current click product!
+      $query = db_query("SELECT fdfy.entity_id FROM field_data_field_year as fdfy
+                        left join field_data_field_month as fdfm
+                        on fdfy.entity_id = fdfm.entity_id
+                        left join field_data_field_day as fdfd
+                        on fdfm.entity_id = fdfd.entity_id
+                        left join field_data_field_hour as fdfh
+                        on fdfd.entity_id = fdfh.entity_id
+                        left join field_data_field_court as fdfc
+                        on fdfh.entity_id = fdfc.entity_id
+                        where field_year_value = '$year' AND
+                        field_month_value = '$month' AND
+                        field_day_value = '$day' AND
+                        field_hour_value = '$hour' AND
+                        field_court_value = '$court';
+                        ");
+      foreach ($query as $row_query) {
+        $product_id = $row_query->entity_id;
+      }
+      commerce_product_delete($product_id);
+      $last_order = array_pop($orders_ids);
+      commerce_order_delete(array_pop($orders_ids));
+
+    }
+    else {
+      $line_items = db_select('commerce_line_item', 'cli')
+        ->fields('cli', array('line_item_id'))
+        ->condition('cli.order_id', $last_order)
+        ->execute()
+        ->fetchAll();
+      foreach ($line_items as $row_line_item) {
+        $line_item_ids[] = $row_line_item->line_item_id;
+      }
+      commerce_line_item_delete(array_pop($line_item_ids));
+    }
   }
+
+
+  $cart_block = views_embed_view('commerce_cart_block', 'default');
+
+  $response = array(
+    'cart_block' => $cart_block,
+  );
+  return drupal_json_output($response);
+
+
+
 
 
 }
@@ -457,7 +511,7 @@ function _booking_calendar_commerce_create_product($table) {
   $year = $table['year'];
   $month = $table['month'];
   $day = $table['day'];
-  $court = $table['court'];
+  $court = $table['name'];
   $name = $table['name'];
   $price = $table['price'];
   $hour = $table['hour'];
@@ -485,27 +539,105 @@ function _booking_calendar_commerce_create_product($table) {
 function _booking_calendar_commerce_create_order($product_id) {
   global $user;
 
-// Create the new order in checkout; you might also check first to
-// see if your user already has an order to use instead of a new one.
-  $order = commerce_order_new($user->uid, 'cart');
 
-// Save the order to get its ID.
-  commerce_order_save($order);
+  $count_orders = db_select('commerce_order', 'cos')
+    ->condition('cos.uid', $user->uid)
+    ->countQuery()
+    ->execute()
+    ->fetchField();
 
-// Load whatever product represents the item the customer will be
-// paying for and create a line item for it.
-  $product = commerce_product_load($product_id);
-  $line_item = commerce_product_line_item_new($product, 1, $order->order_id);
+  if (!empty($count_orders)) {
+    // Add to old order!!!
+    $orders = db_select('commerce_order', 'co')
+      ->fields('co', array('order_id'))
+      ->condition('co.uid', $user->uid)
+      ->execute()
+      ->fetchAll();
+    foreach ($orders as $row) {
+      $orders_ids[] = $row->order_id;
+    }
+    $order = commerce_order_load($orders_ids[0]);
 
-// Save the line item to get its ID.
-  commerce_line_item_save($line_item);
+    // Load whatever product represents the item the customer will be
+    // paying for and create a line item for it.
+    $product = commerce_product_load($product_id);
+    $line_item = commerce_product_line_item_new($product, 1, $orders_ids[0]);
+    // Save the line item to get its ID.
+    commerce_line_item_save($line_item);
+    // Add the line item to the order using fago's rockin' wrapper.
+    $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+    $order_wrapper->commerce_line_items[] = $line_item;
 
-// Add the line item to the order using fago's rockin' wrapper.
-  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
-  $order_wrapper->commerce_line_items[] = $line_item;
 
-// Save the order again to update its line item reference field.
-  commerce_order_save($order);
+    // Save the order again to update its line item reference field.
+    commerce_order_save($order);
+  }
+  else {
+    // Create the new order in checkout; you might also check first to
+    // see if your user already has an order to use instead of a new one.
+    $order = commerce_order_new($user->uid, 'cart');
+
+    // Save the order to get its ID.
+    commerce_order_save($order);
+
+
+    // Load whatever product represents the item the customer will be
+    // paying for and create a line item for it.
+    $product = commerce_product_load($product_id);
+    $line_item = commerce_product_line_item_new($product, 1, $order->id);
+    // Save the line item to get its ID.
+    commerce_line_item_save($line_item);
+    // Add the line item to the order using fago's rockin' wrapper.
+    $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+    $order_wrapper->commerce_line_items[] = $line_item;
+
+
+    // Save the order again to update its line item reference field.
+    commerce_order_save($order);
+  }
+
+
+}
+
+
+function _booking_calendar_clear_all_products() {
+  db_truncate('commerce_line_item')->execute();
+  db_truncate('commerce_order')->execute();
+  db_truncate('commerce_order_revision')->execute();
+  db_truncate('commerce_product')->execute();
+  db_truncate('commerce_product_revision')->execute();
+
+
+  db_truncate('field_data_commerce_display_path')->execute();
+  db_truncate('field_data_commerce_line_items')->execute();
+  db_truncate('field_data_commerce_order_total')->execute();
+  db_truncate('field_data_commerce_price')->execute();
+  db_truncate('field_data_commerce_product')->execute();
+  db_truncate('field_data_commerce_total')->execute();
+  db_truncate('field_data_commerce_unit_price')->execute();
+
+
+  db_truncate('field_revision_commerce_display_path')->execute();
+  db_truncate('field_revision_commerce_line_items')->execute();
+  db_truncate('field_revision_commerce_order_total')->execute();
+  db_truncate('field_revision_commerce_price')->execute();
+  db_truncate('field_revision_commerce_product')->execute();
+  db_truncate('field_revision_commerce_total')->execute();
+  db_truncate('field_revision_commerce_unit_price')->execute();
+
+
+  db_truncate('field_data_field_court')->execute();
+  db_truncate('field_data_field_day')->execute();
+  db_truncate('field_data_field_hour')->execute();
+  db_truncate('field_data_field_month')->execute();
+  db_truncate('field_data_field_year')->execute();
+
+
+  db_truncate('field_revision_field_court')->execute();
+  db_truncate('field_revision_field_day')->execute();
+  db_truncate('field_revision_field_hour')->execute();
+  db_truncate('field_revision_field_month')->execute();
+  db_truncate('field_revision_field_year')->execute();
 }
 
 
