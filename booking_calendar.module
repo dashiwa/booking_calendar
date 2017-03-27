@@ -29,8 +29,14 @@ function booking_calendar_menu() {
   );
 
 
-  $items['booking/calendar/ajax'] = array(
-    'page callback' => 'booking_calendar_month_ajax',
+  $items['booking/calendar/admin/settings/ajax'] = array(
+    'page callback' => 'booking_calendar_admin_settings_ajax',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['booking/calendar/select/month/ajax'] = array(
+    'page callback' => 'booking_calendar_select_month_ajax',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
@@ -78,6 +84,14 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
         'widget' => FALSE,
       ),
     ),
+    'booking_calendar_select_months' => array(
+      'variables' => array(
+        'week' => NULL,
+        'month' => NULL,
+        'year' => NULL,
+        'widget' => FALSE,
+      ),
+    ),
     'booking_calendar_admin_table_day_hours' => array(
       'variables' => array(
         'year' => NULL,
@@ -85,6 +99,7 @@ function booking_calendar_theme($existing, $type, $theme, $path) {
         'day' => NULL,
         'widget' => FALSE,
         'ajax' => FALSE,
+        'court_form' => NULL,
       ),
     ),
     'booking_calendar_widget_select_day_hours' => array(
@@ -181,6 +196,7 @@ function booking_calendar_admin_settings() {
   drupal_add_js(drupal_get_path('module', 'booking_calendar') . '/js/calendar.js');
   drupal_add_css(drupal_get_path('module', 'booking_calendar') . '/css/calendar.css');
 
+
   $output = '';
   $output .= '<div id="t3"></div>';
   $output .= '<div class="flags">
@@ -207,10 +223,16 @@ function booking_calendar_admin_settings() {
     $month = $current_state['month'];
     $day = $current_state['day'];
 
+
+    // Add admin setting form for table hours.
+    $court_form = drupal_get_form('booking_calendar_courts_form');
+    $courts_form_html = render($court_form);
+
     $output .= theme('booking_calendar_admin_table_day_hours', array(
       'year' => $year,
       'month' => $month,
       'day' => $day,
+      'court_form' => $courts_form_html,
     ));
   }
   else {
@@ -226,9 +248,7 @@ function booking_calendar_admin_settings() {
 }
 
 
-/**
- * @file
- */
+
 
 
 /**********************************WIDGET AJAX*******************************/
@@ -347,6 +367,7 @@ function theme_booking_calendar_widget_select_day_hours($variables) {
     }
 
 
+
     if (!empty($court['name'])) {
       $output .= '<td class="' . $classes . '">' . $court['name'] . '</td>';
     }
@@ -361,6 +382,8 @@ function theme_booking_calendar_widget_select_day_hours($variables) {
     $output .= '<tr>';
     $a = 0;
     foreach ($courts as $court) {
+
+
       if ($a == 0) {
         $output .= '<td>' . $hour . '</td>';
       }
@@ -369,7 +392,7 @@ function theme_booking_calendar_widget_select_day_hours($variables) {
           $hour_key = str_replace(' : ', '_', $hour);
           if (!empty(variable_get('booking_calendar_names_courts', ''))) {
             if (isset($court['hours'][$hour]['price'])) {
-              if (array_key_exists($court['name'], $_SESSION['client_hours'][$year][$month][$day]) && array_key_exists($hour, $_SESSION['client_hours'][$year][$month][$day][$court['name']])) {
+              if (isset($_SESSION['client_hours']) && array_key_exists($court['name'], $_SESSION['client_hours'][$year][$month][$day]) && array_key_exists($hour, $_SESSION['client_hours'][$year][$month][$day][$court['name']])) {
 
                 $output .= '<td class="value selected-user" year="' . $year . '" month="' . $month . '" day="' . $day . '" hour="' . $hour . '" name="' . $court['name'] . ' ">' . $court['hours'][$hour]['price'] . '€' . '</td>';
 
@@ -561,10 +584,12 @@ function _booking_calendar_commerce_create_order($product_id) {
     // paying for and create a line item for it.
     $product = commerce_product_load($product_id);
     $line_item = commerce_product_line_item_new($product, 1, $orders_ids[0]);
+
     // Save the line item to get its ID.
-    commerce_line_item_save($line_item);
+
     // Add the line item to the order using fago's rockin' wrapper.
     $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+
     $order_wrapper->commerce_line_items[] = $line_item;
 
 
@@ -651,10 +676,12 @@ function _booking_calendar_clear_all_products() {
 /********************************** END WIDGET AJAX*******************************/
 
 
+/************************************ MAIN SETTINGS LOGIC *************************/
+
 /**
  * Ajax callback.
  */
-function booking_calendar_month_ajax() {
+function booking_calendar_admin_settings_ajax() {
 
   if (count($_POST)) {
     // We calculate the number of days in the current month.
@@ -662,19 +689,20 @@ function booking_calendar_month_ajax() {
     // Counter for the days of the month.
     $day_count = 1;
 
-    isset($_POST['day']) ? $day = $_POST['day'] : $day = date('j');
-
-    isset($_POST['month_number']) ? $month = $_POST['month_number'] : $month = date('n');
-
-    isset($_POST['year']) ? $year = $_POST['year'] : $year = date('Y');
 
     isset($_POST['table']) ? $table = json_decode($_POST['table']) : $table = array();
+    $table = (array) $table;
+
+    isset($table['year']) ? $year = $table['year'] : $year = date('Y');
+    isset($table['month_number']) ? $month = $table['month_number'] : $month = date('n');
+    isset($table['day']) ? $day = $table['day'] : $day = date('j');
+
 
     isset($_POST['current_select']) ? $current_select = json_decode($_POST['current_select']) : $current_select = array();
 
     isset($_POST['widget']) ? $widget = TRUE : $widget = FALSE;
 
-    $table = (array) $table;
+
 
 
     if ($widget) {
@@ -690,11 +718,13 @@ function booking_calendar_month_ajax() {
 
       if (count($current_select) > 0) {
         $_SESSION['current_select'] = $current_select;
+
+        //save in database
         $current_select_base = $_SESSION['current_select'];
         variable_set('current_select', $current_select_base);
       }
 
-
+      //save in database
       $booking_tables = $_SESSION['tables'];
       // If session is expired save value in database
       variable_set('booking_calendar_book_table', $booking_tables);
@@ -752,10 +782,15 @@ function booking_calendar_month_ajax() {
       $month = $current_state['month'];
       $day = $current_state['day'];
 
+      // Add admin setting form for table hours.
+      $court_form = drupal_get_form('booking_calendar_courts_form');
+      $courts_form_html = render($court_form);
+
       $hours_table = theme('booking_calendar_admin_table_day_hours', array(
         'year' => $year,
         'month' => $month,
         'day' => $day,
+        'court_form' => $courts_form_html,
       ));
 
       // If widget block
@@ -811,6 +846,248 @@ function booking_calendar_month_ajax() {
   }
   return drupal_not_found();
 }
+
+
+/********************** SELECT MONTH - NEXT AND PREV **************************/
+
+
+function booking_calendar_select_month_ajax() {
+
+  // We calculate the number of days in the current month.
+  $dayofmonth = date('t');
+  // Counter for the days of the month.
+  $day_count = 1;
+
+  isset($_POST['month_number']) ? $month = $_POST['month_number'] : $month = date('n');
+
+  isset($_POST['year']) ? $year = $_POST['year'] : $year = date('Y');
+
+
+  $week = array();
+
+  // 1. The first week.
+  $num = 0;
+  for ($i = 0; $i < 7; $i++) {
+    // Calculate the number of days of the week for the number of.
+    $dayofweek = date('w', mktime(0, 0, 0, $month, $day_count, $year));
+
+    // Leads to a number of the format 1 - Monday, ..., 6 - Saturday.
+    $dayofweek = $dayofweek - 1;
+    if ($dayofweek == -1) {
+      $dayofweek = 6;
+    }
+
+    if ($dayofweek == $i) {
+      // If the same days of the week,
+      // Fill the array $week
+      // Number of months.
+      $week[$num][$i] = $day_count;
+      $day_count++;
+    }
+    else {
+      $week[$num][$i] = "";
+    }
+  }
+
+  // 2. The following week of the month.
+  while (TRUE) {
+    $num++;
+    for ($i = 0; $i < 7; $i++) {
+      $week[$num][$i] = $day_count;
+      $day_count++;
+      // If you have reached the end of the month - leave
+      // The loop.
+      if ($day_count > $dayofmonth) {
+        break;
+      }
+    }
+    // If you have reached the end of the month - leave
+    // From the cycle.
+    if ($day_count > $dayofmonth) {
+      break;
+    }
+  }
+
+  $output = theme('booking_calendar_select_months', array(
+    'week' => $week,
+    'month' => $month,
+    'year' => $year,
+  ));
+
+
+  $response = array(
+    'output' => $output,
+  );
+
+  return drupal_json_output($response);
+
+}
+
+
+function theme_booking_calendar_select_months($variables) {
+
+
+  isset($variables['week']) ? $week = $variables['week'] : $week = _booking_calendar_calculate();
+  isset($variables['month']) ? $month = $variables['month'] : $month = date('n');
+  isset($variables['year']) ? $year = $variables['year'] : $year = date('Y');
+
+
+  $month_name = date('F', mktime(0, 0, 0, $month, date("j"), date('Y')));
+
+
+  // 3. Print the contents of the array $ week
+  // A calendar
+  // Display the table.
+  $output = '<div class="year">' . $year . '</div>
+             <div id="controls">
+                <div data-year="' . $year . '" data-month="' . $month . '" class="prev">' . t('Ankstesnis') . '</div><div class="month">' . _translate_months($month_name) . '</div><div  data-year="' . $year . '" data-month="' . $month . '" class="next">' . t('Kitas') . '</div></div>';
+  $output .= '<table id="booking-calendar"><thead>';
+
+  $output .= '<thead><tr>';
+  $a = 1;
+
+  $widget = $variables['widget'];
+
+  for ($i = 6; $i < 13; $i++) {
+    if ($widget) {
+      $output .= '<td>' . _arabic_to_roman($a) . '</td>';
+    }
+    else {
+      $output .= '<td>' . date('l', mktime(0, 0, 0, date('m'), $i, $year)) . '</td>';
+    }
+    $a++;
+  }
+
+  $output .= '</tr></thead>';
+  for ($i = 0; $i < count($week); $i++) {
+    $output .= "<tr>";
+    for ($j = 0; $j < 7; $j++) {
+      if (!empty($week[$i][$j])) {
+
+        // If you are dealing with a Saturday and Sunday
+        // highlights them.
+
+        if ($j == 5 || $j == 6) {
+          $classes = 'weekends';
+          if ($week[$i][$j] == date('j')) {
+            $classes = 'this weekends';
+          }
+        }
+        elseif ($week[$i][$j] == date('j')) {
+          $classes = 'this';
+        }
+        else {
+          $classes = '';
+        }
+        if (isset($_SESSION['tables'])) {
+          foreach ($_SESSION['tables'][$year][$month] as $key => $value) {
+            if (!empty($_SESSION['tables'][$year][$month][$key])) {
+              if ($j == $_SESSION['tables'][$year][$month][$key]['week_j'] && $i == $_SESSION['tables'][$year][$month][$key]['week_i']) {
+                $classes = $_SESSION['tables'][$year][$month][$key]['chan'];
+              }
+            }
+          }
+        }
+        else {
+          $booking_table = variable_get('booking_calendar_book_table', '');
+          if (!empty($booking_table)) {
+            foreach ($booking_table[$year][$month] as $key => $value) {
+              if (!empty($booking_table[$year][$month][$key])) {
+                if ($j == $booking_table[$year][$month][$key]['week_j'] && $i == $booking_table[$year][$month][$key]['week_i']) {
+                  $classes = $booking_table[$year][$month][$key]['chan'];
+                }
+              }
+            }
+          }
+        }
+        // Current box
+        if (!empty($_SESSION['current_select'])) {
+          if ($j == $_SESSION['current_select']['week_j'] && $i == $_SESSION['current_select']['week_i']
+            && $year == $_SESSION['current_select']['year'] && $month == $_SESSION['current_select']['month']
+          ) {
+            $classes .= ' ' . 'select';
+          }
+        }
+
+
+        $output .= '<td week_i="' . $i . '" week_j = "' . $j . '" class="' . $classes . '">' . $week[$i][$j] . '</td>';
+      }
+      else {
+        $output .= "<td>&nbsp;</td>";
+      }
+    }
+    $output .= "</tr>";
+  }
+  $output .= "</table>";
+
+  return $output;
+}
+
+
+function _translate_months($month_name) {
+  // Translate months.
+  switch ($month_name) {
+    case 'January' :
+      $month_name = 'Sausis';
+      break;
+    case 'February' :
+      $month_name = 'Vasaris';
+      break;
+    case 'March' :
+      $month_name = 'Kovas';
+      break;
+    case 'April' :
+      $month_name = 'Balandis';
+      break;
+    case 'May' :
+      $month_name = 'Gegužė';
+      break;
+    case 'June' :
+      $month_name = 'Birželis';
+      break;
+    case 'July' :
+      $month_name = 'Liepa';
+      break;
+    case 'August' :
+      $month_name = 'Rugpjūtis';
+      break;
+    case 'September' :
+      $month_name = 'Rugsėjis';
+      break;
+    case 'October' :
+      $month_name = 'Spalis';
+      break;
+    case 'November' :
+      $month_name = 'Lapkritis';
+      break;
+    case 'December' :
+      $month_name = 'Gruodis';
+      break;
+  }
+  return $month_name;
+}
+
+
+/*********************** END SELECT MONTH AJAX *************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * @file
@@ -920,6 +1197,8 @@ function theme_booking_calendar_admin_table_day_hours($variables) {
 
   // Without admin form.
   if (!$widget) {
+    $court_form = $variables['court_form'];
+
     // Add admin setting form for table hours.
     $court_form = drupal_get_form('booking_calendar_courts_form');
     $courts_form_html = render($court_form);
@@ -1161,7 +1440,7 @@ function booking_calendar_courts_form($form, &$form_state) {
     $day = date('j');
   }
 
-
+  $form['#action'] = url("/admin/config/content/booking_calendar");
   $form['courts'] = array(
     '#type' => 'fieldset',
     '#title' => t('Courts settings for ') . '<strong>' . $year . '/' . $month . '/' . $day . '</strong>',

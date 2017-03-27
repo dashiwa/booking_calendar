@@ -11,18 +11,6 @@
             $('#booking-calendar').css('pointer-events', 'auto');
         });
 
-
-        // Months controls
-        $(document).on('click', '#controls .prev', function (event) {
-            var flag = $(this).attr('class');
-            ajaxCalendar($(this), flag);
-        });
-
-        $(document).on('click', '#controls .next', function (event) {
-            var flag = $(this).attr('class');
-            ajaxCalendar($(this), flag);
-        });
-
         // Change booking flag
         $(document).on('click', '.flags ul li', function (event) {
             $('.flags ul li').removeClass('this');
@@ -36,11 +24,8 @@
             var this_select = 'select';
             if (typeof chan != 'undefined') {
 
-
                 // Remove old click class.
                 $(this).removeClass(this_select);
-
-
 
                 // Add new click class
                 $(this).addClass(chan);
@@ -76,8 +61,7 @@
 
                     table = JSON.stringify(table);
                     currentSelect = JSON.stringify(currentSelect);
-
-                    ajaxCalendar($(this), flag, table, day, currentSelect);
+                    ajaxCalendarAdminBookSettings($(this), flag, table, day, currentSelect);
                 }
 
             }
@@ -86,8 +70,55 @@
     });
 })(jQuery);
 
+function ajaxCalendarAdminBookSettings(jqueryThis, flag, table, day, currentSelect) {
+    var $ = jQuery;
 
-function ajaxCalendar(jqueryThis, flag, table, day, currentSelect) {
+    var postString = 'table=' + table + '&current_select=' + currentSelect;
+    var ajaxPath = '/booking/calendar/admin/settings/ajax'; // This is the AjAX URL set by the custom Module.
+    $.ajax({
+        url: ajaxPath,
+        method: "POST",
+        data: postString,
+        success: function (data) {
+            console.log(data['hours_table']);
+            $('#calendar-wrapper').html(data['output']);
+            $('#hours-table-wrapper').html(data['hours_table'])
+        }
+    });
+}
+
+
+/*********************************** CONTROLS WORKING !!!!!!!!!!!!!! *********************/
+
+
+/***************************** CONTROLS - NEXT AND PREV FOR CALENDAR ********************/
+(function ($) {
+    $(function () {
+        // Add custom ajax throbber.
+        $(document).bind("ajaxStart", function () {
+            $('#t3').show();
+            $('#booking-calendar').css('pointer-events', 'none');
+
+        }).bind("ajaxStop", function () {
+            $('#t3').hide();
+            $('#booking-calendar').css('pointer-events', 'auto');
+        });
+
+
+        // Months controls
+        $(document).on('click', '#controls .prev', function (event) {
+            var flag = $(this).attr('class');
+            ajaxCalendarControls($(this), flag);
+        });
+        // NEXT MONTH.
+        $(document).on('click', '#controls .next', function (event) {
+            var flag = $(this).attr('class');
+            ajaxCalendarControls($(this), flag);
+        });
+    });
+})(jQuery);
+
+function ajaxCalendarControls(jqueryThis, flag) {
 
     var $ = jQuery;
 
@@ -114,6 +145,7 @@ function ajaxCalendar(jqueryThis, flag, table, day, currentSelect) {
             month_number = 1;
     }
 
+
     if (flag == 'next') {
 
         month_number = parseInt(month_number);
@@ -129,26 +161,29 @@ function ajaxCalendar(jqueryThis, flag, table, day, currentSelect) {
         }
     }
 
-    var postString = 'day=' + day + '&month_number=' + month_number + '&year=' + year + '&table=' + table + '&current_select=' + currentSelect;
 
-    if (typeof currentSelect == 'undefined') {
-        postString = 'day=' + day + '&month_number=' + month_number + '&year=' + year + '&table=' + table;
-    }
-
-    var ajaxPath = '/booking/calendar/ajax'; // This is the AjAX URL set by the custom Module.
+    var postString = 'month_number=' + month_number + '&year=' + year;
+    var ajaxPath = '/booking/calendar/select/month/ajax'; // This is the AjAX URL set by the custom Module.
     $.ajax({
         url: ajaxPath,
         method: "POST",
         data: postString,
         success: function (data) {
-            console.log(data['hours_table']);
-            if (data['output'].length > 0) {
-                $('#calendar-wrapper').html(data['output']);
-            }
-            $('#hours-table-wrapper').html(data['hours_table'])
-
-
-
+            console.log(data);
+            $('#calendar-wrapper').html(data['output']);
         }
     });
 }
+
+/***************************** END CONTROLS - NEXT AND PREV FOR CALENDAR ********************/
+
+
+
+
+
+
+
+
+
+
+
