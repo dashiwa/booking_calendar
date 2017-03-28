@@ -693,8 +693,9 @@ function booking_calendar_admin_settings_ajax() {
     isset($_POST['table']) ? $table = json_decode($_POST['table']) : $table = array();
     $table = (array) $table;
 
+
     isset($table['year']) ? $year = $table['year'] : $year = date('Y');
-    isset($table['month_number']) ? $month = $table['month_number'] : $month = date('n');
+    isset($table['month']) ? $month = $table['month'] : $month = date('n');
     isset($table['day']) ? $day = $table['day'] : $day = date('j');
 
 
@@ -908,10 +909,13 @@ function booking_calendar_select_month_ajax() {
     }
   }
 
+  isset($_POST['widget']) ? $widget = $_POST['widget'] : $widget = FALSE;
+
   $output = theme('booking_calendar_select_months', array(
     'week' => $week,
     'month' => $month,
     'year' => $year,
+    'widget' => $widget,
   ));
 
 

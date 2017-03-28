@@ -58,7 +58,7 @@
                     currentSelect.day = day;
 
                     var flag = '';
-
+                    console.log(table);
                     table = JSON.stringify(table);
                     currentSelect = JSON.stringify(currentSelect);
                     ajaxCalendarAdminBookSettings($(this), flag, table, day, currentSelect);
@@ -80,7 +80,6 @@ function ajaxCalendarAdminBookSettings(jqueryThis, flag, table, day, currentSele
         method: "POST",
         data: postString,
         success: function (data) {
-            console.log(data['hours_table']);
             $('#calendar-wrapper').html(data['output']);
             $('#hours-table-wrapper').html(data['hours_table'])
         }
@@ -169,7 +168,6 @@ function ajaxCalendarControls(jqueryThis, flag) {
         method: "POST",
         data: postString,
         success: function (data) {
-            console.log(data);
             $('#calendar-wrapper').html(data['output']);
         }
     });
