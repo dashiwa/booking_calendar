@@ -937,7 +937,7 @@ function theme_booking_calendar_select_months($variables) {
 
 
   $month_name = date('F', mktime(0, 0, 0, $month, date("j"), date('Y')));
-
+//s
 
   // 3. Print the contents of the array $ week
   // A calendar
